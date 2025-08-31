@@ -6,6 +6,9 @@ const cors = require("cors");
 const { connectDB } = require("./config/db");
 const { protect } = require("./middleware/authMiddleware");
 
+// Crear la app de Express primero ✅
+const app = express();
+
 // Función para depurar rutas
 const debugRoutes = (prefix, router) => {
   console.log(`🔍 Depurando rutas para prefijo: ${prefix}`);
@@ -18,38 +21,18 @@ const debugRoutes = (prefix, router) => {
   }
 };
 
-// ================================
-// ✅ Validar variables de entorno
-// ================================
-if (!process.env.MONGODB_URI) {
-  console.error("❌ Error: La variable de entorno MONGODB_URI no está definida. Verifica tu archivo .env o las variables en Render.");
-  process.exit(1);
-}
-if (!process.env.JWT_SECRET) {
-  console.error("❌ Error: La variable de entorno JWT_SECRET no está definida. Verifica tu archivo .env o las variables en Render.");
-  process.exit(1);
-}
-
-// ================================
-// ✅ Crear aplicación Express
-// ================================
-const app = express();
-
-// ================================
-// ✅ Configuración de CORS
-// ================================
+// Configuración de CORS
 const allowedOrigins = [
-  "https://frontendiconic.vercel.app",                 // dominio principal en Vercel
-  /^https:\/\/frontendiconic-[a-z0-9]+\.vercel\.app$/, // despliegues temporales de Vercel
-  "http://localhost:3000"                              // desarrollo local
+  "https://frontendiconic.vercel.app",             // dominio principal en Vercel
+  /^https:\/\/frontendiconic-[a-z0-9]+\.vercel\.app$/, // despliegues temporales de vercel
+  "http://localhost:3000"                          // desarrollo local
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
     console.log(`🔍 Origen recibido: ${origin}`);
     if (!origin) {
-      // Permitir peticiones tipo curl / Postman / server-to-server sin origin
-      return callback(null, true);
+      return callback(null, true); // permitir curl/Postman
     }
 
     const isAllowed = allowedOrigins.some(pattern =>
@@ -69,23 +52,30 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-// 👉 aplicar CORS después de tener app
+// Middleware de CORS
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
-// ================================
-// ✅ Middlewares básicos
-// ================================
+// Validar variables de entorno
+if (!process.env.MONGODB_URI) {
+  console.error("❌ Error: La variable de entorno MONGODB_URI no está definida.");
+  process.exit(1);
+}
+if (!process.env.JWT_SECRET) {
+  console.error("❌ Error: La variable de entorno JWT_SECRET no está definida.");
+  process.exit(1);
+}
+
+// Middleware
 app.use(express.json());
 
+// Middleware para registrar solicitudes
 app.use((req, res, next) => {
   console.log(`📩 Solicitud recibida: ${req.method} ${req.url} - ${new Date().toISOString()}`);
   next();
 });
 
-// ================================
-// ✅ Importar modelos
-// ================================
+// Importar modelos
 require("./models/User");
 require("./models/Contabilidad");
 require("./models/Entrenador");
@@ -94,18 +84,14 @@ require("./models/RegistroClases");
 require("./models/ComposicionCorporal");
 require("./models/MedicionPorristas");
 
-// ================================
-// ✅ Conectar a MongoDB
-// ================================
+// Conectar a MongoDB
 console.log("Iniciando conexión a MongoDB...");
 connectDB().catch((error) => {
   console.error("❌ Error al conectar a MongoDB:", error.message);
   process.exit(1);
 });
 
-// ================================
-// ✅ Importar rutas
-// ================================
+// Importar rutas
 const clienteRoutes = require("./routes/clienteRoutes");
 const membresiaRoutes = require("./routes/membresiaRoutes");
 const entrenadorRoutes = require("./routes/entrenadorRoutes");
@@ -121,9 +107,7 @@ const rutinaRoutes = require("./routes/rutinas");
 const composicionCorporalRoutes = require("./routes/composicionCorporal");
 const medicionPorristasRoutes = require("./routes/medicionPorristas");
 
-// ================================
-// ✅ Middleware para proteger rutas
-// ================================
+// Middleware de autenticación (excepto login y rutas públicas)
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/composicion-corporal/cliente/") || req.path.startsWith("/api/auth")) {
     return next();
@@ -131,9 +115,7 @@ app.use((req, res, next) => {
   protect(req, res, next);
 });
 
-// ================================
-// ✅ Registrar rutas con depuración
-// ================================
+// Rutas con depuración
 debugRoutes("/api/clientes", clienteRoutes);
 app.use("/api/clientes", clienteRoutes);
 
@@ -176,17 +158,13 @@ app.use("/api/composicion-corporal", composicionCorporalRoutes);
 debugRoutes("/api/medicion-porristas", medicionPorristasRoutes);
 app.use("/api/medicion-porristas", medicionPorristasRoutes);
 
-// ================================
-// ✅ Ruta raíz
-// ================================
+// Ruta raíz
 app.get("/", (req, res) => {
   res.json({ mensaje: "¡Servidor de Admin-Gimnasios funcionando correctamente!" });
 });
 
-// ================================
-// ✅ Manejo de rutas no encontradas
-// ================================
-app.use((req, res, next) => {
+// Manejo de rutas no encontradas
+app.use((req, res) => {
   if (req.url.startsWith("/api")) {
     console.log(`⚠️ Ruta no encontrada: ${req.method} ${req.url}`);
     res.status(404).json({ mensaje: `Ruta no encontrada: ${req.method} ${req.url}` });
@@ -195,9 +173,7 @@ app.use((req, res, next) => {
   }
 });
 
-// ================================
-// ✅ Manejo de errores
-// ================================
+// Manejo de errores
 app.use((err, req, res, next) => {
   console.error("❌ Error en el servidor:", err.stack);
   res.status(500).json({
@@ -206,9 +182,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ================================
-// ✅ Iniciar servidor
-// ================================
+// Iniciar servidor
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
