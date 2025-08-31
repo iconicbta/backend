@@ -19,26 +19,44 @@ const debugRoutes = (prefix, router) => {
 };
 
 // Configuración de CORS
+// Configuración de CORS
+const allowedOrigins = [
+  "https://frontendiconic.vercel.app",             // dominio principal en Vercel
+  /^https:\/\/frontendiconic-[a-z0-9]+\.vercel\.app$/, // despliegues temporales de vercel
+  "http://localhost:3000"                          // desarrollo local
+];
+
 const corsOptions = {
   origin: (origin, callback) => {
-    const allowedOrigins = [
-      'https://frontendiconic.vercel.app',
-      /^https:\/\/frontendiconic-.*\.vercel\.app$/,
-      'http://localhost:3000', // Agregado para pruebas locales
-    ];
     console.log(`🔍 Origen recibido: ${origin}`);
-    if (!origin || allowedOrigins.some(pattern => typeof pattern === 'string' ? pattern === origin : pattern.test(origin))) {
+    if (!origin) {
+      // Permitir peticiones tipo curl / Postman / server-to-server sin origin
+      return callback(null, true);
+    }
+
+    const isAllowed = allowedOrigins.some(pattern =>
+      typeof pattern === "string" ? pattern === origin : pattern.test(origin)
+    );
+
+    if (isAllowed) {
       callback(null, true);
     } else {
-      console.warn(`Origen no permitido por CORS: ${origin}`);
-      callback(new Error('No permitido por CORS'));
+      console.warn(`⛔ Origen no permitido por CORS: ${origin}`);
+      callback(new Error("No permitido por CORS"));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
   optionsSuccessStatus: 200
 };
+
+// Middleware de CORS
+app.use(cors(corsOptions));
+
+// Middleware especial para que OPTIONS responda OK
+app.options("*", cors(corsOptions));
+
 
 // Validar variables de entorno
 if (!process.env.MONGODB_URI) {
@@ -162,4 +180,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
 });
+
 
