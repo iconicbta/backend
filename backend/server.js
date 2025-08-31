@@ -18,12 +18,30 @@ const debugRoutes = (prefix, router) => {
   }
 };
 
-// Configuración de CORS
-// Configuración de CORS
+// ================================
+// ✅ Validar variables de entorno
+// ================================
+if (!process.env.MONGODB_URI) {
+  console.error("❌ Error: La variable de entorno MONGODB_URI no está definida. Verifica tu archivo .env o las variables en Render.");
+  process.exit(1);
+}
+if (!process.env.JWT_SECRET) {
+  console.error("❌ Error: La variable de entorno JWT_SECRET no está definida. Verifica tu archivo .env o las variables en Render.");
+  process.exit(1);
+}
+
+// ================================
+// ✅ Crear aplicación Express
+// ================================
+const app = express();
+
+// ================================
+// ✅ Configuración de CORS
+// ================================
 const allowedOrigins = [
-  "https://frontendiconic.vercel.app",             // dominio principal en Vercel
-  /^https:\/\/frontendiconic-[a-z0-9]+\.vercel\.app$/, // despliegues temporales de vercel
-  "http://localhost:3000"                          // desarrollo local
+  "https://frontendiconic.vercel.app",                 // dominio principal en Vercel
+  /^https:\/\/frontendiconic-[a-z0-9]+\.vercel\.app$/, // despliegues temporales de Vercel
+  "http://localhost:3000"                              // desarrollo local
 ];
 
 const corsOptions = {
@@ -51,37 +69,23 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-// Middleware de CORS
+// 👉 aplicar CORS después de tener app
 app.use(cors(corsOptions));
-
-// Middleware especial para que OPTIONS responda OK
 app.options("*", cors(corsOptions));
 
-
-// Validar variables de entorno
-if (!process.env.MONGODB_URI) {
-  console.error("❌ Error: La variable de entorno MONGODB_URI no está definida. Verifica tu archivo .env o las variables en Render.");
-  process.exit(1);
-}
-if (!process.env.JWT_SECRET) {
-  console.error("❌ Error: La variable de entorno JWT_SECRET no está definida. Verifica tu archivo .env o las variables en Render.");
-  process.exit(1);
-}
-
-const app = express();
-
-// Middleware de CORS
-app.use(cors(corsOptions));
-
+// ================================
+// ✅ Middlewares básicos
+// ================================
 app.use(express.json());
 
-// Middleware para registrar solicitudes
 app.use((req, res, next) => {
   console.log(`📩 Solicitud recibida: ${req.method} ${req.url} - ${new Date().toISOString()}`);
   next();
 });
 
-// Importar y registrar modelos
+// ================================
+// ✅ Importar modelos
+// ================================
 require("./models/User");
 require("./models/Contabilidad");
 require("./models/Entrenador");
@@ -90,14 +94,18 @@ require("./models/RegistroClases");
 require("./models/ComposicionCorporal");
 require("./models/MedicionPorristas");
 
-// Conectar a MongoDB con manejo de errores
+// ================================
+// ✅ Conectar a MongoDB
+// ================================
 console.log("Iniciando conexión a MongoDB...");
 connectDB().catch((error) => {
   console.error("❌ Error al conectar a MongoDB:", error.message);
   process.exit(1);
 });
 
-// Importar rutas
+// ================================
+// ✅ Importar rutas
+// ================================
 const clienteRoutes = require("./routes/clienteRoutes");
 const membresiaRoutes = require("./routes/membresiaRoutes");
 const entrenadorRoutes = require("./routes/entrenadorRoutes");
@@ -113,7 +121,9 @@ const rutinaRoutes = require("./routes/rutinas");
 const composicionCorporalRoutes = require("./routes/composicionCorporal");
 const medicionPorristasRoutes = require("./routes/medicionPorristas");
 
-// Middleware para rutas públicas y protegidas
+// ================================
+// ✅ Middleware para proteger rutas
+// ================================
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/composicion-corporal/cliente/") || req.path.startsWith("/api/auth")) {
     return next();
@@ -121,42 +131,61 @@ app.use((req, res, next) => {
   protect(req, res, next);
 });
 
-// Rutas con depuración
+// ================================
+// ✅ Registrar rutas con depuración
+// ================================
 debugRoutes("/api/clientes", clienteRoutes);
 app.use("/api/clientes", clienteRoutes);
+
 debugRoutes("/api/membresias", membresiaRoutes);
 app.use("/api/membresias", membresiaRoutes);
+
 debugRoutes("/api/entrenadores", entrenadorRoutes);
 app.use("/api/entrenadores", entrenadorRoutes);
+
 debugRoutes("/api/productos", productRoutes);
 app.use("/api/productos", productRoutes);
+
 debugRoutes("/api/pagos", pagoRoutes);
 app.use("/api/pagos", pagoRoutes);
+
 debugRoutes("/api/auth", authRoutes);
 app.use("/api/auth", authRoutes);
+
 debugRoutes("/api/users", userRoutes);
 app.use("/api/users", userRoutes);
+
 debugRoutes("/api/clases", claseRoutes);
 app.use("/api/clases", claseRoutes);
+
 debugRoutes("/api/contabilidad", contabilidadRoutes);
 app.use("/api/contabilidad", contabilidadRoutes);
+
 debugRoutes("/api/indicadores", indicadorRoutes);
 app.use("/api/indicadores", indicadorRoutes);
+
 debugRoutes("/api/asistencias", asistenciaRoutes);
 app.use("/api/asistencias", asistenciaRoutes);
+
 debugRoutes("/api/rutinas", rutinaRoutes);
 app.use("/api/rutinas", rutinaRoutes);
+
 debugRoutes("/api/composicion-corporal", composicionCorporalRoutes);
 app.use("/api/composicion-corporal", composicionCorporalRoutes);
+
 debugRoutes("/api/medicion-porristas", medicionPorristasRoutes);
 app.use("/api/medicion-porristas", medicionPorristasRoutes);
 
-// Ruta raíz
+// ================================
+// ✅ Ruta raíz
+// ================================
 app.get("/", (req, res) => {
   res.json({ mensaje: "¡Servidor de Admin-Gimnasios funcionando correctamente!" });
 });
 
-// Manejo de rutas no encontradas
+// ================================
+// ✅ Manejo de rutas no encontradas
+// ================================
 app.use((req, res, next) => {
   if (req.url.startsWith("/api")) {
     console.log(`⚠️ Ruta no encontrada: ${req.method} ${req.url}`);
@@ -166,7 +195,9 @@ app.use((req, res, next) => {
   }
 });
 
-// Manejo de errores
+// ================================
+// ✅ Manejo de errores
+// ================================
 app.use((err, req, res, next) => {
   console.error("❌ Error en el servidor:", err.stack);
   res.status(500).json({
@@ -175,10 +206,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Iniciar servidor
+// ================================
+// ✅ Iniciar servidor
+// ================================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
 });
-
-
