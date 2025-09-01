@@ -1,6 +1,6 @@
 const ComposicionCorporal = require("../models/ComposicionCorporal");
 const Cliente = require("../models/Cliente");
-const Usuario = require("../models/Usuario");
+const Usuario = require("../models/User");
 const asyncHandler = require("express-async-handler");
 
 // @desc    Crear una nueva composición corporal
@@ -319,3 +319,4 @@ exports.consultarComposicionesPorCliente = asyncHandler(async (req, res) => {
     data: composiciones,
   });
 });
+
