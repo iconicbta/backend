@@ -1,123 +1,108 @@
+// backend/routes/userRoutes.js
 const express = require("express");
 const router = express.Router();
 const asyncHandler = require("express-async-handler");
-const User = require("../models/User"); // Corrección de importación
+const User = require("../models/User");
 const { protect, verificarPermisos } = require("../middleware/authMiddleware");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken"); // Añadido para generar token
+const jwt = require("jsonwebtoken");
 
 /**
- * ==========================================================
- * 🔹 RUTA TEMPORAL: CREAR USUARIO (sin protección)
- * - Úsela solo para registrar el primer admin
- * - Después de crear el usuario, BORRE o COMENTE esta ruta
- * ==========================================================
+ * RUTA TEMPORAL: CREAR USUARIO (sin protección)
+ * Usar solo para crear el primer admin. Después eliminar o comentar.
  */
 router.post(
   "/register",
   asyncHandler(async (req, res) => {
     const { nombre, email, password, rol } = req.body;
-    // Verificar si ya existe el correo
-    const usuarioExistente = await User.findOne({ email }); // Cambiado a User
-    if (usuarioExistente) {
-      return res.status(400).json({ mensaje: "El usuario ya existe" });
+    if (!nombre || !email || !password) {
+      return res.status(400).json({ message: "nombre, email y password son requeridos" });
     }
-    // Hashear contraseña
+
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res.status(400).json({ message: "El usuario ya existe" });
+    }
+
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    // Crear usuario con rol válido según el modelo
-    const nuevoUsuario = new User({
+    const hashed = await bcrypt.hash(password, salt);
+
+    const nuevo = new User({
       nombre,
       email,
-      password: hashedPassword,
-      rol: rol || "user", // Cambiado a "user" para coincidir con el enum
+      password: hashed,
+      rol: rol || "user",
     });
-    await nuevoUsuario.save();
-    // Generar token como en authController.js
-    const token = jwt.sign(
-      { id: nuevoUsuario._id, rol: nuevoUsuario.rol },
-      process.env.JWT_SECRET,
-      { expiresIn: "30d" }
-    );
+
+    await nuevo.save();
+
+    const token = jwt.sign({ id: nuevo._id, rol: nuevo.rol }, process.env.JWT_SECRET, {
+      expiresIn: "30d",
+    });
+
     res.status(201).json({
-      mensaje: "Usuario registrado correctamente",
-      token, // Añadido token en la respuesta
-      usuario: {
-        id: nuevoUsuario._id,
-        nombre: nuevoUsuario.nombre,
-        email: nuevoUsuario.email,
-        rol: nuevoUsuario.rol,
+      message: "Usuario creado",
+      token,
+      user: {
+        id: nuevo._id,
+        nombre: nuevo.nombre,
+        email: nuevo.email,
+        rol: nuevo.rol,
       },
     });
   })
 );
 
-/**
- * ==========================================================
- * 🔹 RUTAS PROTEGIDAS (solo admin)
- * ==========================================================
- */
-// @desc Obtener todos los usuarios
-// @route GET /api/usuarios
-// @access Privado (solo admin)
+/** RUTAS PROTEGIDAS (solo admin) */
 router.get(
   "/",
   protect,
   verificarPermisos(["admin"]),
   asyncHandler(async (req, res) => {
-    const usuarios = await User.find({}); // Cambiado a User
+    const usuarios = await User.find().select("-password").lean();
     res.json(usuarios);
   })
 );
 
-// @desc Actualizar usuario
-// @route PUT /api/usuarios/:id
-// @access Privado (solo admin)
 router.put(
   "/:id",
   protect,
   verificarPermisos(["admin"]),
   asyncHandler(async (req, res) => {
-    const usuario = await User.findById(req.params.id); // Cambiado a User
-    if (usuario) {
-      usuario.nombre = req.body.nombre || usuario.nombre;
-      usuario.email = req.body.email || usuario.email;
-      usuario.rol = req.body.rol || usuario.rol;
-      if (req.body.password) {
-        const salt = await bcrypt.genSalt(10);
-        usuario.password = await bcrypt.hash(req.body.password, salt);
-      }
-      const actualizado = await usuario.save();
-      res.json({
-        mensaje: "Usuario actualizado",
-        usuario: {
-          id: actualizado._id,
-          nombre: actualizado.nombre,
-          email: actualizado.email,
-          rol: actualizado.rol,
-        },
-      });
-    } else {
-      res.status(404).json({ mensaje: "Usuario no encontrado" });
+    const usuario = await User.findById(req.params.id);
+    if (!usuario) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    usuario.nombre = req.body.nombre || usuario.nombre;
+    usuario.email = req.body.email || usuario.email;
+    usuario.rol = req.body.rol || usuario.rol;
+    if (req.body.password) {
+      const salt = await bcrypt.genSalt(10);
+      usuario.password = await bcrypt.hash(req.body.password, salt);
     }
+
+    const updated = await usuario.save();
+    res.json({
+      message: "Usuario actualizado",
+      user: {
+        id: updated._id,
+        nombre: updated.nombre,
+        email: updated.email,
+        rol: updated.rol,
+      },
+    });
   })
 );
 
-// @desc Eliminar usuario
-// @route DELETE /api/usuarios/:id
-// @access Privado (solo admin)
 router.delete(
   "/:id",
   protect,
   verificarPermisos(["admin"]),
   asyncHandler(async (req, res) => {
-    const usuario = await User.findById(req.params.id); // Cambiado a User
-    if (usuario) {
-      await usuario.deleteOne();
-      res.json({ mensaje: "Usuario eliminado" });
-    } else {
-      res.status(404).json({ mensaje: "Usuario no encontrado" });
-    }
+    const usuario = await User.findById(req.params.id);
+    if (!usuario) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    await usuario.deleteOne();
+    res.json({ message: "Usuario eliminado" });
   })
 );
 
