@@ -1,11 +1,10 @@
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
-const Usuario = require("../models/Usuario");
+const User = require("../models/User"); // Cambiado de Usuario a User
 
 // Middleware para verificar el token y autenticar al usuario
 const protect = asyncHandler(async (req, res, next) => {
   let token;
-
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
@@ -13,14 +12,12 @@ const protect = asyncHandler(async (req, res, next) => {
     try {
       token = req.headers.authorization.split(" ")[1];
       console.log("Token recibido:", token);
-
       if (!process.env.JWT_SECRET) {
         throw new Error("Clave secreta JWT no definida en .env");
       }
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log("Token decodificado:", decoded);
-
-      req.user = await Usuario.findById(decoded.id).select("-password");
+      req.user = await User.findById(decoded.id).select("-password"); // Cambiado a User
       if (!req.user) {
         console.log("Usuario no encontrado para el ID:", decoded.id);
         return res
@@ -28,7 +25,6 @@ const protect = asyncHandler(async (req, res, next) => {
           .json({ message: "No autorizado, usuario no encontrado" });
       }
       console.log("Usuario encontrado - Rol:", req.user.rol);
-
       next();
     } catch (error) {
       console.error("Error al verificar el token:", error.message);
