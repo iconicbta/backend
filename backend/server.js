@@ -12,14 +12,13 @@ const app = express();
 const allowedOrigins = [
   "https://frontendiconic.vercel.app",
   /^https:\/\/frontendiconic.*\.vercel\.app$/,
-  "http://localhost:3000"
+  "http://localhost:3000",
 ];
-
 const corsOptions = {
   origin: (origin, callback) => {
     console.log(`🔍 Origen recibido: ${origin}`);
     if (!origin) return callback(null, true);
-    const isAllowed = allowedOrigins.some(pattern =>
+    const isAllowed = allowedOrigins.some((pattern) =>
       typeof pattern === "string" ? pattern === origin : pattern.test(origin)
     );
     if (isAllowed) callback(null, true);
@@ -28,11 +27,11 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 };
-
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
+
 app.use(express.json());
 
 // Log de solicitudes
@@ -43,10 +42,12 @@ app.use((req, res, next) => {
 
 // Conectar a MongoDB
 console.log("Iniciando conexión a MongoDB...");
-connectDB().catch((error) => {
-  console.error("❌ Error al conectar a MongoDB:", error.message);
-  process.exit(1);
-});
+connectDB()
+  .then(() => console.log("✅ Conexión a MongoDB establecida"))
+  .catch((error) => {
+    console.error("❌ Error al conectar a MongoDB:", error.message);
+    process.exit(1);
+  });
 
 // Rutas
 const clienteRoutes = require("./routes/clienteRoutes");
@@ -65,7 +66,7 @@ const composicionCorporalRoutes = require("./routes/composicionCorporal");
 const medicionPorristasRoutes = require("./routes/medicionPorristas");
 
 // 🚨 Aplica `protect` SOLO a rutas privadas
-app.use("/api/auth", authRoutes); // 🔓 pública (login, register, etc.)
+app.use("/api/auth", authRoutes); // 🔓 Pública (login, register, etc.)
 app.use("/api/clientes", protect, clienteRoutes);
 app.use("/api/membresias", protect, membresiaRoutes);
 app.use("/api/entrenadores", protect, entrenadorRoutes);
