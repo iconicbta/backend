@@ -43,12 +43,22 @@ const crearCliente = async (req, res) => {
       direccion,
       estado,
       numeroIdentificacion,
+      fechaNacimiento,
+      edad,
+      tipoDocumento,
+      rh,
+      eps,
+      tallaTrenSuperior,
+      tallaTrenInferior,
+      nombreResponsable,
     } = req.body;
+
     console.log("Datos recibidos para crear cliente:", req.body);
 
-    if (!nombre || !email || !numeroIdentificacion) {
+    // Validaciones
+    if (!nombre || !email || !numeroIdentificacion || !fechaNacimiento || !edad || !tipoDocumento) {
       return res.status(400).json({
-        message: "Nombre, email y número de identificación son obligatorios",
+        message: "Nombre, email, número de identificación, fecha de nacimiento, edad y tipo de documento son obligatorios",
       });
     }
 
@@ -75,7 +85,8 @@ const crearCliente = async (req, res) => {
         .json({ message: "El número de identificación ya está registrado" });
     }
 
-    const nuevoCliente = new Cliente({
+    // Convertir tipos
+    const clienteData = {
       nombre,
       apellido: apellido || "",
       email,
@@ -83,9 +94,17 @@ const crearCliente = async (req, res) => {
       direccion: direccion || "",
       estado: estado ? estado.toLowerCase() : "activo",
       numeroIdentificacion,
-      fechaRegistro: new Date(),
-    });
+      fechaNacimiento: new Date(fechaNacimiento), // Convierte string a Date
+      edad: parseInt(edad), // Convierte string a Number
+      tipoDocumento,
+      rh: rh || "",
+      eps: eps || "",
+      tallaTrenSuperior: tallaTrenSuperior || "",
+      tallaTrenInferior: tallaTrenInferior || "",
+      nombreResponsable: nombreResponsable || "",
+    };
 
+    const nuevoCliente = new Cliente(clienteData);
     const clienteGuardado = await nuevoCliente.save();
     res.status(201).json(clienteGuardado);
   } catch (error) {
@@ -123,15 +142,23 @@ const actualizarCliente = async (req, res) => {
       direccion,
       estado,
       numeroIdentificacion,
+      fechaNacimiento,
+      edad,
+      tipoDocumento,
+      rh,
+      eps,
+      tallaTrenSuperior,
+      tallaTrenInferior,
+      nombreResponsable,
     } = req.body;
     const cliente = await Cliente.findById(req.params.id);
     if (!cliente) {
       return res.status(404).json({ message: "Cliente no encontrado" });
     }
 
-    if (!nombre || !email || !numeroIdentificacion) {
+    if (!nombre || !email || !numeroIdentificacion || !fechaNacimiento || !edad || !tipoDocumento) {
       return res.status(400).json({
-        message: "Nombre, email y número de identificación son obligatorios",
+        message: "Nombre, email, número de identificación, fecha de nacimiento, edad y tipo de documento son obligatorios",
       });
     }
 
@@ -164,13 +191,20 @@ const actualizarCliente = async (req, res) => {
     }
 
     cliente.nombre = nombre || cliente.nombre;
-    cliente.apellido = apellido || "";
+    cliente.apellido = apellido || cliente.apellido || "";
     cliente.email = email || cliente.email;
-    cliente.telefono = telefono || "";
-    cliente.direccion = direccion || "";
+    cliente.telefono = telefono || cliente.telefono || "";
+    cliente.direccion = direccion || cliente.direccion || "";
     cliente.estado = estado ? estado.toLowerCase() : cliente.estado;
-    cliente.numeroIdentificacion =
-      numeroIdentificacion || cliente.numeroIdentificacion;
+    cliente.numeroIdentificacion = numeroIdentificacion || cliente.numeroIdentificacion;
+    cliente.fechaNacimiento = fechaNacimiento ? new Date(fechaNacimiento) : cliente.fechaNacimiento;
+    cliente.edad = edad ? parseInt(edad) : cliente.edad;
+    cliente.tipoDocumento = tipoDocumento || cliente.tipoDocumento;
+    cliente.rh = rh || cliente.rh || "";
+    cliente.eps = eps || cliente.eps || "";
+    cliente.tallaTrenSuperior = tallaTrenSuperior || cliente.tallaTrenSuperior || "";
+    cliente.tallaTrenInferior = tallaTrenInferior || cliente.tallaTrenInferior || "";
+    cliente.nombreResponsable = nombreResponsable || cliente.nombreResponsable || "";
 
     const clienteActualizado = await cliente.save();
     console.log("Cliente actualizado:", clienteActualizado);
@@ -204,19 +238,15 @@ const obtenerClientesActivos = async (req, res) => {
     console.log("Iniciando obtenerClientesActivos...");
     const fechaActual = new Date();
     console.log("Fecha actual:", fechaActual);
-
     // Buscar membresías activas
     const membresiasActivas = await Membresia.find({
       estado: "activa",
       fechafin: { $gt: fechaActual },
     }).distinct("cliente");
-
     console.log("Membresías activas encontradas:", membresiasActivas);
-
     // Contar clientes únicos con membresías activas
-    const clientesActivos = membresiasActivas.length;
+    const clientesActivos = membresiasActivos.length;
     console.log("Clientes activos encontrados:", clientesActivos);
-
     // Enviar respuesta
     res.status(200).json({ clientesActivos });
   } catch (error) {
