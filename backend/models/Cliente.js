@@ -20,4 +20,15 @@ const clienteSchema = new mongoose.Schema({
   membresias: [{ type: mongoose.Schema.Types.ObjectId, ref: "Membresia" }],
 });
 
+// Pre-save hook para convertir tipos si llegan como strings
+clienteSchema.pre("save", function (next) {
+  if (this.edad && typeof this.edad === "string") {
+    this.edad = parseInt(this.edad);
+  }
+  if (this.fechaNacimiento && typeof this.fechaNacimiento === "string") {
+    this.fechaNacimiento = new Date(this.fechaNacimiento);
+  }
+  next();
+});
+
 module.exports = mongoose.model("Cliente", clienteSchema);
