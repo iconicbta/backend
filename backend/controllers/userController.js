@@ -1,5 +1,5 @@
 const asyncHandler = require("express-async-handler");
-const Usuario = require("../models/Usuario");
+const Usuario = require("../models/User");
 
 // @desc    Obtener todos los usuarios
 // @route   GET /api/usuarios
@@ -111,3 +111,4 @@ exports.eliminarUsuario = asyncHandler(async (req, res) => {
 
   res.json({ message: "Usuario eliminado con éxito" });
 });
+
