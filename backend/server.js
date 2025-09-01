@@ -6,7 +6,7 @@ const cors = require("cors");
 const { connectDB } = require("./config/db");
 const { protect } = require("./middleware/authMiddleware");
 
-// Crear la app de Express primero ✅
+// Crear la app de Express
 const app = express();
 
 // Función para depurar rutas
@@ -23,9 +23,9 @@ const debugRoutes = (prefix, router) => {
 
 // Configuración de CORS
 const allowedOrigins = [
-  "https://frontendiconic.vercel.app",             // dominio principal en Vercel
-  /^https:\/\/frontendiconic-[a-z0-9]+\.vercel\.app$/, // despliegues temporales de vercel
-  "http://localhost:3000"                          // desarrollo local
+  "https://frontendiconic.vercel.app",            // dominio principal en Vercel
+  /^https:\/\/frontendiconic.*\.vercel\.app$/,   // cualquier subdominio temporal de Vercel para frontendiconic
+  "http://localhost:3000"                        // desarrollo local
 ];
 
 const corsOptions = {
@@ -109,7 +109,10 @@ const medicionPorristasRoutes = require("./routes/medicionPorristas");
 
 // Middleware de autenticación (excepto login y rutas públicas)
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api/composicion-corporal/cliente/") || req.path.startsWith("/api/auth")) {
+  if (
+    req.path.startsWith("/api/composicion-corporal/cliente/") ||
+    req.path.startsWith("/api/auth")
+  ) {
     return next();
   }
   protect(req, res, next);
