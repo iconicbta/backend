@@ -1,125 +1,125 @@
 const express = require("express");
 const router = express.Router();
-const { protect, verificarPermisos } = require("../middleware/authMiddleware"); // Cambiado a verificarPermisos
 const asyncHandler = require("express-async-handler");
+const Usuario = require("../models/userModel");
+const { protect, verificarPermisos } = require("../middleware/authMiddleware");
 const bcrypt = require("bcryptjs");
-const Usuario = require("../models/Usuario");
 
-// @desc    Obtener todos los usuarios
-// @route   GET /api/usuarios
-// @access  Private (Admin)
-router.get(
-  "/",
-  protect,
-  verificarPermisos(["admin"]), // Cambiado de verificarRol a verificarPermisos
+/**
+ * ==========================================================
+ *  🔹 RUTA TEMPORAL: CREAR USUARIO (sin protección)
+ *  - Úsela solo para registrar el primer admin
+ *  - Después de crear el usuario, BORRE o COMENTE esta ruta
+ * ==========================================================
+ */
+router.post(
+  "/register",
   asyncHandler(async (req, res) => {
-    console.log(
-      "Solicitud GET /api/usuarios recibida. Rol del usuario:",
-      req.user.rol
-    );
+    const { nombre, email, password, rol } = req.body;
 
-    const users = await Usuario.find().select("-password").lean();
-    console.log("Usuarios encontrados:", users);
-
-    if (!users || users.length === 0) {
-      console.log("No se encontraron usuarios en la base de datos");
-      return res.status(404).json({ mensaje: "No se encontraron usuarios" });
+    // Verificar si ya existe el correo
+    const usuarioExistente = await Usuario.findOne({ email });
+    if (usuarioExistente) {
+      return res.status(400).json({ mensaje: "El usuario ya existe" });
     }
 
-    res.json(users);
-  })
-);
+    // Hashear contraseña
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-// @desc    Obtener un usuario por ID
-// @route   GET /api/usuarios/:id
-// @access  Private (Admin)
-router.get(
-  "/:id",
-  protect,
-  verificarPermisos(["admin"]), // Cambiado de verificarRol a verificarPermisos
-  asyncHandler(async (req, res) => {
-    console.log("Solicitud GET /api/usuarios/:id recibida. ID:", req.params.id);
+    // Crear usuario
+    const nuevoUsuario = new Usuario({
+      nombre,
+      email,
+      password: hashedPassword,
+      rol: rol || "usuario", // Por defecto "usuario"
+    });
 
-    const user = await Usuario.findById(req.params.id)
-      .select("-password")
-      .lean();
-    if (!user) {
-      console.log("Usuario no encontrado con ID:", req.params.id);
-      return res.status(404).json({ mensaje: "Usuario no encontrado" });
-    }
+    await nuevoUsuario.save();
 
-    res.json(user);
-  })
-);
-
-// @desc    Actualizar un usuario
-// @route   PUT /api/usuarios/:id
-// @access  Private (Admin)
-router.put(
-  "/:id",
-  protect,
-  verificarPermisos(["admin"]), // Cambiado de verificarRol a verificarPermisos
-  asyncHandler(async (req, res) => {
-    console.log(
-      "Solicitud PUT /api/usuarios/:id recibida. ID:",
-      req.params.id,
-      "Datos:",
-      req.body
-    );
-
-    const user = await Usuario.findById(req.params.id);
-    if (!user) {
-      console.log("Usuario no encontrado con ID:", req.params.id);
-      return res.status(404).json({ mensaje: "Usuario no encontrado" });
-    }
-
-    const { nombre, email, rol, password } = req.body;
-    if (nombre) user.nombre = nombre;
-    if (email) user.email = email;
-    if (rol) user.rol = rol;
-    if (password) {
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
-    }
-
-    await user.save();
-    console.log("Usuario actualizado:", user);
-
-    res.json({
-      mensaje: "Usuario actualizado con éxito",
-      user: {
-        id: user._id,
-        nombre: user.nombre,
-        email: user.email,
-        rol: user.rol,
+    res.status(201).json({
+      mensaje: "Usuario registrado correctamente",
+      usuario: {
+        id: nuevoUsuario._id,
+        nombre: nuevoUsuario.nombre,
+        email: nuevoUsuario.email,
+        rol: nuevoUsuario.rol,
       },
     });
   })
 );
 
-// @desc    Eliminar un usuario
+/**
+ * ==========================================================
+ *  🔹 RUTAS PROTEGIDAS (solo admin)
+ * ==========================================================
+ */
+
+// @desc    Obtener todos los usuarios
+// @route   GET /api/usuarios
+// @access  Privado (solo admin)
+router.get(
+  "/",
+  protect,
+  verificarPermisos(["admin"]),
+  asyncHandler(async (req, res) => {
+    const usuarios = await Usuario.find({});
+    res.json(usuarios);
+  })
+);
+
+// @desc    Actualizar usuario
+// @route   PUT /api/usuarios/:id
+// @access  Privado (solo admin)
+router.put(
+  "/:id",
+  protect,
+  verificarPermisos(["admin"]),
+  asyncHandler(async (req, res) => {
+    const usuario = await Usuario.findById(req.params.id);
+
+    if (usuario) {
+      usuario.nombre = req.body.nombre || usuario.nombre;
+      usuario.email = req.body.email || usuario.email;
+      usuario.rol = req.body.rol || usuario.rol;
+
+      if (req.body.password) {
+        const salt = await bcrypt.genSalt(10);
+        usuario.password = await bcrypt.hash(req.body.password, salt);
+      }
+
+      const actualizado = await usuario.save();
+      res.json({
+        mensaje: "Usuario actualizado",
+        usuario: {
+          id: actualizado._id,
+          nombre: actualizado.nombre,
+          email: actualizado.email,
+          rol: actualizado.rol,
+        },
+      });
+    } else {
+      res.status(404).json({ mensaje: "Usuario no encontrado" });
+    }
+  })
+);
+
+// @desc    Eliminar usuario
 // @route   DELETE /api/usuarios/:id
-// @access  Private (Admin)
+// @access  Privado (solo admin)
 router.delete(
   "/:id",
   protect,
-  verificarPermisos(["admin"]), // Cambiado de verificarRol a verificarPermisos
+  verificarPermisos(["admin"]),
   asyncHandler(async (req, res) => {
-    console.log(
-      "Solicitud DELETE /api/usuarios/:id recibida. ID:",
-      req.params.id
-    );
+    const usuario = await Usuario.findById(req.params.id);
 
-    const user = await Usuario.findById(req.params.id);
-    if (!user) {
-      console.log("Usuario no encontrado con ID:", req.params.id);
-      return res.status(404).json({ mensaje: "Usuario no encontrado" });
+    if (usuario) {
+      await usuario.deleteOne();
+      res.json({ mensaje: "Usuario eliminado" });
+    } else {
+      res.status(404).json({ mensaje: "Usuario no encontrado" });
     }
-
-    await user.deleteOne();
-    console.log("Usuario eliminado con ID:", req.params.id);
-
-    res.json({ mensaje: "Usuario eliminado con éxito" });
   })
 );
 
