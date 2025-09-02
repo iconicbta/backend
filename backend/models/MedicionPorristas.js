@@ -24,7 +24,7 @@ const medicionPorristasSchema = new mongoose.Schema(
     descripcion: { type: String },
     creadoPor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Usuario",
+      ref: "User",
       required: true,
     },
   },
@@ -41,3 +41,4 @@ medicionPorristasSchema.pre('save', function (next) {
 });
 
 module.exports = mongoose.model("MedicionPorristas", medicionPorristasSchema);
+
