@@ -29,7 +29,7 @@ const pagoSchema = new mongoose.Schema({
   },
   creadoPor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Usuario",
+    ref: "User",
     required: true,
   },
   estado: {
@@ -67,3 +67,4 @@ pagoSchema.post("init", function (doc) {
 });
 
 module.exports = mongoose.model("Pago", pagoSchema);
+
