@@ -4,9 +4,7 @@ const Membresia = require("../models/Membresia");
 // Obtener todos los clientes
 const obtenerClientes = async (req, res) => {
   try {
-    const clientes = await Cliente.find().select(
-      "nombre apellido email telefono direccion estado numeroIdentificacion fechaRegistro"
-    );
+    const clientes = await Cliente.find();
     console.log("Clientes obtenidos:", clientes);
     res.status(200).json(clientes);
   } catch (error) {
@@ -52,39 +50,32 @@ const crearCliente = async (req, res) => {
       tallaTrenInferior,
       nombreResponsable,
     } = req.body;
-
     console.log("Datos recibidos para crear cliente:", req.body);
-
     // Validaciones
     if (!nombre || !email || !numeroIdentificacion || !fechaNacimiento || !edad || !tipoDocumento) {
       return res.status(400).json({
         message: "Nombre, email, número de identificación, fecha de nacimiento, edad y tipo de documento son obligatorios",
       });
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: "Correo electrónico inválido" });
     }
-
     if (telefono && !/^\d{10}$/.test(telefono)) {
       return res
         .status(400)
         .json({ message: "Teléfono debe tener 10 dígitos" });
     }
-
     if (estado && !["activo", "inactivo"].includes(estado.toLowerCase())) {
       return res
         .status(400)
         .json({ message: "Estado debe ser 'activo' o 'inactivo'" });
     }
-
     const clienteExistente = await Cliente.findOne({ numeroIdentificacion });
     if (clienteExistente) {
       return res
         .status(400)
         .json({ message: "El número de identificación ya está registrado" });
     }
-
     // Convertir tipos
     const clienteData = {
       nombre,
@@ -103,7 +94,6 @@ const crearCliente = async (req, res) => {
       tallaTrenInferior: tallaTrenInferior || "",
       nombreResponsable: nombreResponsable || "",
     };
-
     const nuevoCliente = new Cliente(clienteData);
     const clienteGuardado = await nuevoCliente.save();
     res.status(201).json(clienteGuardado);
@@ -155,29 +145,24 @@ const actualizarCliente = async (req, res) => {
     if (!cliente) {
       return res.status(404).json({ message: "Cliente no encontrado" });
     }
-
     if (!nombre || !email || !numeroIdentificacion || !fechaNacimiento || !edad || !tipoDocumento) {
       return res.status(400).json({
         message: "Nombre, email, número de identificación, fecha de nacimiento, edad y tipo de documento son obligatorios",
       });
     }
-
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: "Correo electrónico inválido" });
     }
-
     if (telefono && !/^\d{10}$/.test(telefono)) {
       return res
         .status(400)
         .json({ message: "Teléfono debe tener 10 dígitos" });
     }
-
     if (estado && !["activo", "inactivo"].includes(estado.toLowerCase())) {
       return res
         .status(400)
         .json({ message: "Estado debe ser 'activo' o 'inactivo'" });
     }
-
     if (
       numeroIdentificacion &&
       numeroIdentificacion !== cliente.numeroIdentificacion
@@ -189,7 +174,6 @@ const actualizarCliente = async (req, res) => {
           .json({ message: "El número de identificación ya está registrado" });
       }
     }
-
     cliente.nombre = nombre || cliente.nombre;
     cliente.apellido = apellido || cliente.apellido || "";
     cliente.email = email || cliente.email;
@@ -205,7 +189,6 @@ const actualizarCliente = async (req, res) => {
     cliente.tallaTrenSuperior = tallaTrenSuperior || cliente.tallaTrenSuperior || "";
     cliente.tallaTrenInferior = tallaTrenInferior || cliente.tallaTrenInferior || "";
     cliente.nombreResponsable = nombreResponsable || cliente.nombreResponsable || "";
-
     const clienteActualizado = await cliente.save();
     console.log("Cliente actualizado:", clienteActualizado);
     res.status(200).json(clienteActualizado);
@@ -245,7 +228,7 @@ const obtenerClientesActivos = async (req, res) => {
     }).distinct("cliente");
     console.log("Membresías activas encontradas:", membresiasActivas);
     // Contar clientes únicos con membresías activas
-    const clientesActivos = membresiasActivos.length;
+    const clientesActivos = membresiasActivas.length;
     console.log("Clientes activos encontrados:", clientesActivos);
     // Enviar respuesta
     res.status(200).json({ clientesActivos });
