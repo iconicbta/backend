@@ -5,7 +5,7 @@ const listarProductos = async (req, res) => {
   try {
     console.log("Solicitud para listar productos recibida");
     const productos = await Product.find().select(
-      "nombre descripcion precio stock estado updatedAt createdAt" // Eliminado fechaRegistro
+      "nombre descripcion precio stock estado updatedAt createdAt"
     );
     console.log("Productos encontrados:", productos);
     if (!productos || productos.length === 0) {
@@ -25,7 +25,7 @@ const listarProductos = async (req, res) => {
 const obtenerProductoPorId = async (req, res) => {
   try {
     const producto = await Product.findById(req.params.id).select(
-      "nombre descripcion precio stock estado updatedAt createdAt" // Eliminado fechaRegistro
+      "nombre descripcion precio stock estado updatedAt createdAt"
     );
     if (!producto) {
       return res.status(404).json({ message: "Producto no encontrado" });
@@ -44,16 +44,14 @@ const agregarProducto = async (req, res) => {
   try {
     console.log("Solicitud para agregar producto recibida:", req.body);
     const { nombre, descripcion, precio, stock, estado } = req.body;
-
     const newProducto = new Product({
       nombre,
       descripcion: descripcion || "",
-      precio,
-      stock: stock || 0,
+      precio: Math.round(parseFloat(precio)), // Redondea al entero más cercano
+      stock: parseInt(stock) || 0,
       estado: estado || "activo",
       updatedAt: Date.now(),
     });
-
     const savedProducto = await newProducto.save();
     console.log("Producto guardado en la base de datos:", savedProducto);
     res.status(201).json(savedProducto);
@@ -72,14 +70,19 @@ const editarProducto = async (req, res) => {
     const { nombre, descripcion, precio, stock, estado } = req.body;
     const producto = await Product.findByIdAndUpdate(
       req.params.id,
-      { nombre, descripcion, precio, stock, estado, updatedAt: Date.now() },
+      {
+        nombre,
+        descripcion,
+        precio: Math.round(parseFloat(precio)), // Redondea al entero más cercano
+        stock: parseInt(stock),
+        estado,
+        updatedAt: Date.now(),
+      },
       { new: true }
     );
-
     if (!producto) {
       return res.status(404).json({ message: "Producto no encontrado" });
     }
-
     console.log("Producto actualizado:", producto);
     res.json(producto);
   } catch (error) {
@@ -97,8 +100,6 @@ const eliminarProducto = async (req, res) => {
     if (!producto) {
       return res.status(404).json({ message: "Producto no encontrado" });
     }
-
-    // Validar si el producto es "Mensualidad" o "Clase"
     if (producto.nombre === "Mensualidad" || producto.nombre === "Clase") {
       console.log(`Intento de eliminar producto base: ${producto.nombre}`);
       return res.status(403).json({
@@ -106,7 +107,6 @@ const eliminarProducto = async (req, res) => {
           "No se puede eliminar este producto porque es un producto base.",
       });
     }
-
     await Product.findByIdAndDelete(req.params.id);
     console.log("Producto eliminado:", producto);
     res.json({ message: "Producto eliminado correctamente" });
