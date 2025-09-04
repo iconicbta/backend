@@ -153,21 +153,18 @@ router.get(
   async (req, res) => {
     try {
       console.log("Solicitud GET recibida en /api/pagos", req.query);
-      console.log("Modelo Pago:", Pago);
 
       if (!Pago || typeof Pago.find !== "function") {
         throw new Error("Modelo Pago no está correctamente definido");
       }
 
-      const query = {};
+      const query = { estado: "Completado" }; // ✅ restauramos el filtro
       if (req.query.fechaInicio && req.query.fechaFin) {
         query.fecha = {
           $gte: new Date(req.query.fechaInicio),
           $lte: new Date(req.query.fechaFin),
         };
       }
-      // Temporalmente sin filtro de estado para verificar todos los pagos
-      // query.estado = "Completado";
 
       const pagos = await Pago.find(query)
         .populate("cliente", "nombre apellido")
@@ -247,7 +244,7 @@ router.post(
         fecha: fechaPago,
         metodoPago,
         creadoPor: req.user._id,
-        estado: "Completado", // Asegurar estado al crear
+        estado: "Completado", // ✅ se mantiene al crear
       });
 
       const pagoGuardado = await nuevoPago.save();
@@ -338,7 +335,7 @@ router.get(
     try {
       console.log("Solicitud GET recibida en /api/pagos/ingresos", req.query);
 
-      const query = { estado: "Completado" };
+      const query = { estado: "Completado" }; // ✅ filtro consistente
       if (req.query.fechaInicio && req.query.fechaFin) {
         query.fecha = {
           $gte: new Date(req.query.fechaInicio),
