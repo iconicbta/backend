@@ -1,76 +1,64 @@
 const express = require("express");
 const router = express.Router();
 const Contabilidad = require("../models/Contabilidad");
-const { protect } = require("../middleware/authMiddleware"); // Cambiado a authMiddleware y usando protect
+const { protect } = require("../middleware/authMiddleware"); // usando protect
 
 // Listar todas las transacciones
 router.get("/", protect, async (req, res) => {
-  // Cambiado authMiddleware por protect
   try {
-    console.log("Solicitud GET recibida en /", req.path, req.query);
+    console.log("Solicitud GET recibida en /", req.query);
 
-    console.log("Modelo Contabilidad:", Contabilidad);
-
-    if (!Contabilidad || typeof Contabilidad.find !== "function") {
-      throw new Error(
-        "Modelo Contabilidad no está correctamente definido o no está disponible"
-      );
-    }
-
-    const { fechaInicio, fechaFin, tipo } = req.query;
+    const { fechaInicio, fechaFin, tipo, metodoPago } = req.query;
     const filtro = {};
 
+    // Filtro por fechas
     if (fechaInicio && fechaFin) {
       const inicio = new Date(fechaInicio);
       const fin = new Date(fechaFin);
-      if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
-        throw new Error("Fechas inválidas en los parámetros de consulta");
-      }
       fin.setHours(23, 59, 59, 999);
       filtro.fecha = { $gte: inicio, $lte: fin };
     } else if (fechaInicio) {
       const inicio = new Date(fechaInicio);
-      if (isNaN(inicio.getTime())) {
-        throw new Error("Fecha de inicio inválida");
-      }
       filtro.fecha = { $gte: inicio };
     } else if (fechaFin) {
       const fin = new Date(fechaFin);
-      if (isNaN(fin.getTime())) {
-        throw new Error("Fecha de fin inválida");
-      }
       fin.setHours(23, 59, 59, 999);
       filtro.fecha = { $lte: fin };
     }
 
+    // Filtro por tipo (ingreso/egreso)
     if (tipo) {
       if (tipo !== "ingreso" && tipo !== "egreso") {
-        throw new Error(
-          "Tipo de transacción inválido. Debe ser 'ingreso' o 'egreso'"
-        );
+        return res.status(400).json({
+          mensaje: "Tipo de transacción inválido. Debe ser 'ingreso' o 'egreso'",
+        });
       }
       filtro.tipo = tipo;
     }
 
+    // ✅ Filtro por método de pago
+    if (metodoPago) {
+      filtro.metodoPago = metodoPago;
+    }
+
     console.log("Filtro aplicado:", JSON.stringify(filtro, null, 2));
+
     const transacciones = await Contabilidad.find(filtro)
       .populate("creadoPor", "nombre email")
       .sort({ fecha: -1 });
 
-    console.log(
-      "Transacciones encontradas:",
-      JSON.stringify(transacciones, null, 2)
-    );
     if (!transacciones) {
-      throw new Error("No se pudieron recuperar las transacciones");
+      return res.status(404).json({ mensaje: "No se encontraron transacciones" });
     }
 
     const totalIngresos = transacciones
       .filter((t) => t.tipo === "ingreso")
       .reduce((sum, t) => sum + t.monto, 0);
+
     const totalEgresos = transacciones
       .filter((t) => t.tipo === "egreso")
       .reduce((sum, t) => sum + t.monto, 0);
+
     const balance = totalIngresos - totalEgresos;
 
     res.json({ transacciones, totalIngresos, totalEgresos, balance });
@@ -79,23 +67,14 @@ router.get("/", protect, async (req, res) => {
     res.status(500).json({
       mensaje: "Error interno al listar las transacciones",
       detalle: error.message || "Error desconocido",
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 });
 
 // Crear una nueva transacción
 router.post("/", protect, async (req, res) => {
-  // Cambiado authMiddleware por protect
   try {
-    console.log(
-      "Solicitud POST recibida en /",
-      JSON.stringify(req.body, null, 2)
-    );
-
-    if (!Contabilidad) {
-      throw new Error("Modelo Contabilidad no está definido");
-    }
+    console.log("Solicitud POST recibida en /", JSON.stringify(req.body, null, 2));
 
     const {
       tipo,
@@ -106,6 +85,7 @@ router.post("/", protect, async (req, res) => {
       cuentaDebito,
       cuentaCredito,
       referencia,
+      metodoPago, // ✅ añadimos metodoPago aquí también
     } = req.body;
 
     if (
@@ -152,35 +132,27 @@ router.post("/", protect, async (req, res) => {
       cuentaDebito,
       cuentaCredito,
       referencia,
+      metodoPago: metodoPago || "Efectivo", // ✅ guardamos también metodoPago
       creadoPor: req.user._id,
     });
 
     const transaccionGuardada = await nuevaTransaccion.save();
     await transaccionGuardada.populate("creadoPor", "nombre email");
-    console.log(
-      "Transacción guardada:",
-      JSON.stringify(transaccionGuardada, null, 2)
-    );
+    console.log("Transacción guardada:", JSON.stringify(transaccionGuardada, null, 2));
     res.status(201).json(transaccionGuardada);
   } catch (error) {
     console.error("Error al crear transacción:", error.stack);
     res.status(500).json({
       mensaje: "Error interno al crear la transacción",
       detalle: error.message || "Error desconocido",
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 });
 
 // Obtener una transacción por ID
 router.get("/:id", protect, async (req, res) => {
-  // Cambiado authMiddleware por protect
   try {
     console.log("Solicitud GET recibida en /:id", req.params.id);
-    if (!Contabilidad || typeof Contabilidad.findById !== "function") {
-      throw new Error("Modelo Contabilidad no está correctamente definido");
-    }
-
     const transaccion = await Contabilidad.findById(req.params.id).populate(
       "creadoPor",
       "nombre email"
@@ -194,24 +166,14 @@ router.get("/:id", protect, async (req, res) => {
     res.status(500).json({
       mensaje: "Error al obtener la transacción",
       detalle: error.message || "Error desconocido",
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 });
 
 // Actualizar una transacción
 router.put("/:id", protect, async (req, res) => {
-  // Cambiado authMiddleware por protect
   try {
-    console.log(
-      "Solicitud PUT recibida en /:id",
-      req.params.id,
-      JSON.stringify(req.body, null, 2)
-    );
-    if (!Contabilidad || typeof Contabilidad.findById !== "function") {
-      throw new Error("Modelo Contabilidad no está correctamente definido");
-    }
-
+    console.log("Solicitud PUT recibida en /:id", req.params.id, JSON.stringify(req.body, null, 2));
     const {
       tipo,
       monto,
@@ -221,7 +183,9 @@ router.put("/:id", protect, async (req, res) => {
       cuentaDebito,
       cuentaCredito,
       referencia,
+      metodoPago, // ✅ lo incluimos también en la actualización
     } = req.body;
+
     const transaccion = await Contabilidad.findById(req.params.id);
     if (!transaccion) {
       return res.status(404).json({ mensaje: "Transacción no encontrada" });
@@ -240,6 +204,7 @@ router.put("/:id", protect, async (req, res) => {
     transaccion.cuentaDebito = cuentaDebito;
     transaccion.cuentaCredito = cuentaCredito;
     transaccion.referencia = referencia;
+    transaccion.metodoPago = metodoPago || transaccion.metodoPago;
     transaccion.updatedAt = new Date();
 
     await transaccion.save();
@@ -250,23 +215,15 @@ router.put("/:id", protect, async (req, res) => {
     res.status(500).json({
       mensaje: "Error al actualizar la transacción",
       detalle: error.message || "Error desconocido",
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 });
 
 // Eliminar una transacción
 router.delete("/:id", protect, async (req, res) => {
-  // Cambiado authMiddleware por protect
   try {
     console.log("Solicitud DELETE recibida en /:id", req.params.id);
-    if (!Contabilidad || typeof Contabilidad.findByIdAndDelete !== "function") {
-      throw new Error("Modelo Contabilidad no está correctamente definido");
-    }
-
-    const transaccionEliminada = await Contabilidad.findByIdAndDelete(
-      req.params.id
-    );
+    const transaccionEliminada = await Contabilidad.findByIdAndDelete(req.params.id);
     if (!transaccionEliminada) {
       return res.status(404).json({ mensaje: "Transacción no encontrada" });
     }
@@ -276,7 +233,6 @@ router.delete("/:id", protect, async (req, res) => {
     res.status(500).json({
       mensaje: "Error al eliminar la transacción",
       detalle: error.message || "Error desconocido",
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 });
