@@ -4,12 +4,11 @@ const mongoose = require("mongoose");
 const Transaccion = require("../models/Transaccion");
 const Pago = require("../models/Pago");
 
-// Listar pagos + egresos
 const listarTransacciones = async (req, res) => {
   try {
     console.log("Iniciando listarTransacciones...");
 
-    const { fechaInicio, fechaFin, metodoPago } = req.query;
+    const { fechaInicio, fechaFin, metodoPago, tipo } = req.query;
 
     // --- Filtros de fechas ---
     const rangoFechas = {};
@@ -28,36 +27,42 @@ const listarTransacciones = async (req, res) => {
     }
 
     // --- Egresos ---
-    const filtroEgresos = { tipo: "egreso" };
-    if (Object.keys(rangoFechas).length > 0) {
-      filtroEgresos.fecha = rangoFechas;
-    }
+    let egresos = [];
+    if (!tipo || tipo === "egreso") {
+      const filtroEgresos = { tipo: "egreso" };
+      if (Object.keys(rangoFechas).length > 0) {
+        filtroEgresos.fecha = rangoFechas;
+      }
 
-    const egresos = await Transaccion.find(filtroEgresos)
-      .populate("creadoPor", "nombre email")
-      .sort({ fecha: -1 })
-      .lean();
+      egresos = await Transaccion.find(filtroEgresos)
+        .populate("creadoPor", "nombre email")
+        .sort({ fecha: -1 })
+        .lean();
+    }
 
     const totalEgresos = egresos.reduce((acc, e) => acc + e.monto, 0);
 
-    // --- Pagos ---
-    const filtroPagos = {};
-    if (Object.keys(rangoFechas).length > 0) {
-      filtroPagos.fecha = rangoFechas;
-    }
-    if (metodoPago) {
-      filtroPagos.metodoPago = metodoPago;
-    }
+    // --- Pagos (ingresos) ---
+    let pagos = [];
+    if (!tipo || tipo === "ingreso") {
+      const filtroPagos = {};
+      if (Object.keys(rangoFechas).length > 0) {
+        filtroPagos.fecha = rangoFechas;
+      }
+      if (metodoPago) {
+        filtroPagos.metodoPago = metodoPago;
+      }
 
-    const pagos = await Pago.find(filtroPagos)
-      .populate("cliente", "nombre apellido")
-      .populate("creadoPor", "nombre email")
-      .sort({ fecha: -1 })
-      .lean();
+      pagos = await Pago.find(filtroPagos)
+        .populate("cliente", "nombre apellido")
+        .populate("creadoPor", "nombre email")
+        .sort({ fecha: -1 })
+        .lean();
+    }
 
     const totalIngresos = pagos.reduce((acc, p) => acc + p.monto, 0);
 
-    // --- Normalizamos para que frontend los lea igual ---
+    // --- Normalizamos para frontend ---
     const pagosNormalizados = pagos.map((p) => ({
       _id: p._id,
       tipo: "ingreso",
@@ -94,7 +99,6 @@ const listarTransacciones = async (req, res) => {
 
     const balance = totalIngresos - totalEgresos;
 
-    // 👇 Ajustado para que frontend lo entienda
     res.json({
       transacciones,
       totales: {
