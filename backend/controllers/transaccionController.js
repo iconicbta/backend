@@ -51,7 +51,6 @@ const listarTransacciones = async (req, res) => {
 
     const pagos = await Pago.find(filtroPagos)
       .populate("cliente", "nombre apellido")
-      .populate("producto", "nombre")
       .populate("creadoPor", "nombre email")
       .sort({ fecha: -1 })
       .lean();
@@ -63,14 +62,15 @@ const listarTransacciones = async (req, res) => {
       _id: p._id,
       tipo: "ingreso",
       descripcion: `Pago de cliente - Método: ${p.metodoPago}`,
-      producto: p.producto?.nombre || "N/A",
       cliente: p.cliente
         ? `${p.cliente.nombre} ${p.cliente.apellido}`
         : "N/A",
       monto: p.monto,
       fecha: p.fecha,
-      metodoPago: p.metodoPago,
-      estado: p.estado || "Completado",
+      metodoPago: p.metodoPago || "N/A",
+      cuentaDebito: p.cuentaDebito || "N/A",
+      cuentaCredito: p.cuentaCredito || "N/A",
+      referencia: p.referencia || "N/A",
       creadoPor: p.creadoPor,
     }));
 
@@ -78,12 +78,13 @@ const listarTransacciones = async (req, res) => {
       _id: e._id,
       tipo: "egreso",
       descripcion: e.descripcion,
-      producto: "N/A",
       cliente: "N/A",
       monto: e.monto,
       fecha: e.fecha,
       metodoPago: "N/A", // solo aplica a pagos
-      estado: "Registrado",
+      cuentaDebito: e.cuentaDebito || "N/A",
+      cuentaCredito: e.cuentaCredito || "N/A",
+      referencia: e.referencia || "N/A",
       creadoPor: e.creadoPor,
     }));
 
@@ -93,11 +94,14 @@ const listarTransacciones = async (req, res) => {
 
     const balance = totalIngresos - totalEgresos;
 
+    // 👇 Ajustado para que frontend lo entienda
     res.json({
       transacciones,
-      totalIngresos,
-      totalEgresos,
-      balance,
+      totales: {
+        ingresos: totalIngresos,
+        egresos: totalEgresos,
+        balance,
+      },
     });
   } catch (error) {
     console.error("Error al listar transacciones:", error.message);
