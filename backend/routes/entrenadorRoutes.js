@@ -6,7 +6,7 @@ const {
   actualizarEntrenador,
   eliminarEntrenador,
   listarEquipos, // 👈 importar aquí
-} = require("../controllers/entrenadorController");
+} = require("../controllers/entrenadoresController");
 
 const router = express.Router();
 
@@ -20,3 +20,4 @@ router.delete("/:id", eliminarEntrenador);
 router.get("/equipos/listar", listarEquipos);
 
 module.exports = router;
+
