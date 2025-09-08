@@ -64,10 +64,17 @@ const eliminarEntrenador = async (req, res) => {
   }
 };
 
-// 👇 Nuevo: listar equipos
+// 👇 Nuevo: listar equipos (desde 'especialidad' que es array de strings)
 const listarEquipos = async (req, res) => {
   try {
-    const equipos = await Entrenador.distinct("equipo");
+    // distinct sobre un campo array devuelve los valores únicos aplanados
+    const valores = await Entrenador.distinct("especialidad");
+    // Normalizar: quitar vacíos, trim y ordenar
+    const equipos = (valores || [])
+      .filter(Boolean)
+      .map((s) => String(s).trim())
+      .filter((s) => s.length > 0)
+      .sort((a, b) => a.localeCompare(b, "es"));
     res.json(equipos);
   } catch (error) {
     res.status(500).json({ message: "Error al obtener equipos", error });
@@ -80,5 +87,5 @@ module.exports = {
   crearEntrenador,
   actualizarEntrenador,
   eliminarEntrenador,
-  listarEquipos, // 👈 exportado correctamente
+  listarEquipos,
 };
