@@ -8,9 +8,7 @@ const obtenerClientes = async (req, res) => {
     console.log("Clientes obtenidos:", clientes);
     res.status(200).json(clientes);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error al obtener clientes: " + error.message });
+    res.status(500).json({ message: "Error al obtener clientes: " + error.message });
   }
 };
 
@@ -24,9 +22,7 @@ const consultarClientePorCedula = async (req, res) => {
     }
     res.status(200).json(cliente);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error al consultar cliente: " + error.message });
+    res.status(500).json({ message: "Error al consultar cliente: " + error.message });
   }
 };
 
@@ -49,33 +45,36 @@ const crearCliente = async (req, res) => {
       tallaTrenSuperior,
       tallaTrenInferior,
       nombreResponsable,
+      equipo, // 👈 NUEVO
     } = req.body;
+
     console.log("Datos recibidos para crear cliente:", req.body);
+
     // Validaciones
     if (!nombre || !email || !numeroIdentificacion || !fechaNacimiento || !edad || !tipoDocumento) {
       return res.status(400).json({
-        message: "Nombre, email, número de identificación, fecha de nacimiento, edad y tipo de documento son obligatorios",
+        message:
+          "Nombre, email, número de identificación, fecha de nacimiento, edad y tipo de documento son obligatorios",
       });
+    }
+    if (!equipo || !equipo.trim()) {
+      return res.status(400).json({ message: "El equipo es obligatorio" });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: "Correo electrónico inválido" });
     }
     if (telefono && !/^\d{10}$/.test(telefono)) {
-      return res
-        .status(400)
-        .json({ message: "Teléfono debe tener 10 dígitos" });
+      return res.status(400).json({ message: "Teléfono debe tener 10 dígitos" });
     }
     if (estado && !["activo", "inactivo"].includes(estado.toLowerCase())) {
-      return res
-        .status(400)
-        .json({ message: "Estado debe ser 'activo' o 'inactivo'" });
+      return res.status(400).json({ message: "Estado debe ser 'activo' o 'inactivo'" });
     }
+
     const clienteExistente = await Cliente.findOne({ numeroIdentificacion });
     if (clienteExistente) {
-      return res
-        .status(400)
-        .json({ message: "El número de identificación ya está registrado" });
+      return res.status(400).json({ message: "El número de identificación ya está registrado" });
     }
+
     // Convertir tipos
     const clienteData = {
       nombre,
@@ -85,23 +84,23 @@ const crearCliente = async (req, res) => {
       direccion: direccion || "",
       estado: estado ? estado.toLowerCase() : "activo",
       numeroIdentificacion,
-      fechaNacimiento: new Date(fechaNacimiento), // Convierte string a Date
-      edad: parseInt(edad), // Convierte string a Number
+      fechaNacimiento: new Date(fechaNacimiento),
+      edad: parseInt(edad),
       tipoDocumento,
       rh: rh || "",
       eps: eps || "",
       tallaTrenSuperior: tallaTrenSuperior || "",
       tallaTrenInferior: tallaTrenInferior || "",
       nombreResponsable: nombreResponsable || "",
+      equipo: equipo.trim(), // 👈 guardar equipo
     };
+
     const nuevoCliente = new Cliente(clienteData);
     const clienteGuardado = await nuevoCliente.save();
     res.status(201).json(clienteGuardado);
   } catch (error) {
     console.error("Error al crear cliente:", error);
-    res
-      .status(500)
-      .json({ message: "Error al crear cliente: " + error.message });
+    res.status(500).json({ message: "Error al crear cliente: " + error.message });
   }
 };
 
@@ -114,9 +113,7 @@ const obtenerClientePorId = async (req, res) => {
     }
     res.status(200).json(cliente);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error al obtener cliente: " + error.message });
+    res.status(500).json({ message: "Error al obtener cliente: " + error.message });
   }
 };
 
@@ -140,40 +137,39 @@ const actualizarCliente = async (req, res) => {
       tallaTrenSuperior,
       tallaTrenInferior,
       nombreResponsable,
+      equipo, // 👈 NUEVO
     } = req.body;
+
     const cliente = await Cliente.findById(req.params.id);
     if (!cliente) {
       return res.status(404).json({ message: "Cliente no encontrado" });
     }
+
     if (!nombre || !email || !numeroIdentificacion || !fechaNacimiento || !edad || !tipoDocumento) {
       return res.status(400).json({
-        message: "Nombre, email, número de identificación, fecha de nacimiento, edad y tipo de documento son obligatorios",
+        message:
+          "Nombre, email, número de identificación, fecha de nacimiento, edad y tipo de documento son obligatorios",
       });
+    }
+    if (!equipo || !equipo.trim()) {
+      return res.status(400).json({ message: "El equipo es obligatorio" });
     }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: "Correo electrónico inválido" });
     }
     if (telefono && !/^\d{10}$/.test(telefono)) {
-      return res
-        .status(400)
-        .json({ message: "Teléfono debe tener 10 dígitos" });
+      return res.status(400).json({ message: "Teléfono debe tener 10 dígitos" });
     }
     if (estado && !["activo", "inactivo"].includes(estado.toLowerCase())) {
-      return res
-        .status(400)
-        .json({ message: "Estado debe ser 'activo' o 'inactivo'" });
+      return res.status(400).json({ message: "Estado debe ser 'activo' o 'inactivo'" });
     }
-    if (
-      numeroIdentificacion &&
-      numeroIdentificacion !== cliente.numeroIdentificacion
-    ) {
+    if (numeroIdentificacion && numeroIdentificacion !== cliente.numeroIdentificacion) {
       const clienteExistente = await Cliente.findOne({ numeroIdentificacion });
       if (clienteExistente) {
-        return res
-          .status(400)
-          .json({ message: "El número de identificación ya está registrado" });
+        return res.status(400).json({ message: "El número de identificación ya está registrado" });
       }
     }
+
     cliente.nombre = nombre || cliente.nombre;
     cliente.apellido = apellido || cliente.apellido || "";
     cliente.email = email || cliente.email;
@@ -189,14 +185,14 @@ const actualizarCliente = async (req, res) => {
     cliente.tallaTrenSuperior = tallaTrenSuperior || cliente.tallaTrenSuperior || "";
     cliente.tallaTrenInferior = tallaTrenInferior || cliente.tallaTrenInferior || "";
     cliente.nombreResponsable = nombreResponsable || cliente.nombreResponsable || "";
+    cliente.equipo = equipo ? equipo.trim() : cliente.equipo; // 👈 actualizar equipo
+
     const clienteActualizado = await cliente.save();
     console.log("Cliente actualizado:", clienteActualizado);
     res.status(200).json(clienteActualizado);
   } catch (error) {
     console.error("Error al actualizar cliente:", error);
-    res
-      .status(500)
-      .json({ message: "Error al actualizar cliente: " + error.message });
+    res.status(500).json({ message: "Error al actualizar cliente: " + error.message });
   }
 };
 
@@ -209,9 +205,7 @@ const eliminarCliente = async (req, res) => {
     }
     res.status(200).json({ message: "Cliente eliminado" });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error al eliminar cliente: " + error.message });
+    res.status(500).json({ message: "Error al eliminar cliente: " + error.message });
   }
 };
 
@@ -221,22 +215,21 @@ const obtenerClientesActivos = async (req, res) => {
     console.log("Iniciando obtenerClientesActivos...");
     const fechaActual = new Date();
     console.log("Fecha actual:", fechaActual);
-    // Buscar membresías activas
+
     const membresiasActivas = await Membresia.find({
       estado: "activa",
       fechafin: { $gt: fechaActual },
     }).distinct("cliente");
+
     console.log("Membresías activas encontradas:", membresiasActivas);
-    // Contar clientes únicos con membresías activas
+
     const clientesActivos = membresiasActivas.length;
     console.log("Clientes activos encontrados:", clientesActivos);
-    // Enviar respuesta
+
     res.status(200).json({ clientesActivos });
   } catch (error) {
     console.error("Error al obtener clientes activos:", error.message);
-    res.status(500).json({
-      message: "Error al obtener clientes activos: " + error.message,
-    });
+    res.status(500).json({ message: "Error al obtener clientes activos: " + error.message });
   }
 };
 
