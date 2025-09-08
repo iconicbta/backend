@@ -1,19 +1,3 @@
-const Cliente = require("../models/Cliente");
-const Membresia = require("../models/Membresia");
-
-// Obtener todos los clientes
-const obtenerClientes = async (req, res) => {
-  try {
-    const clientes = await Cliente.find();
-    res.status(200).json(clientes);
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error al obtener clientes: " + error.message });
-  }
-};
-
-// Crear un nuevo cliente
 const crearCliente = async (req, res) => {
   try {
     const {
@@ -32,80 +16,36 @@ const crearCliente = async (req, res) => {
       tallaTrenSuperior,
       tallaTrenInferior,
       nombreResponsable,
-      equipo,
+      equipo, // 👈 agregado
     } = req.body;
 
-    if (
-      !nombre ||
-      !email ||
-      !numeroIdentificacion ||
-      !fechaNacimiento ||
-      !edad ||
-      !tipoDocumento
-    ) {
-      return res.status(400).json({
-        message:
-          "Nombre, email, número de identificación, fecha de nacimiento, edad y tipo de documento son obligatorios",
-      });
-    }
-
-    const clienteExistente = await Cliente.findOne({ numeroIdentificacion });
-    if (clienteExistente) {
-      return res
-        .status(400)
-        .json({ message: "El número de identificación ya está registrado" });
+    if (!equipo) {
+      return res.status(400).json({ message: "El equipo es obligatorio" });
     }
 
     const clienteData = {
       nombre,
-      apellido,
+      apellido: apellido || "",
       email,
-      telefono,
-      direccion,
+      telefono: telefono || "",
+      direccion: direccion || "",
       estado: estado ? estado.toLowerCase() : "activo",
       numeroIdentificacion,
       fechaNacimiento: new Date(fechaNacimiento),
       edad: parseInt(edad),
       tipoDocumento,
-      rh,
-      eps,
-      tallaTrenSuperior,
-      tallaTrenInferior,
-      nombreResponsable,
-      equipo, // 👈 guardar equipo
+      rh: rh || "",
+      eps: eps || "",
+      tallaTrenSuperior: tallaTrenSuperior || "",
+      tallaTrenInferior: tallaTrenInferior || "",
+      nombreResponsable: nombreResponsable || "",
+      equipo, // 👈 guardamos el equipo
     };
 
     const nuevoCliente = new Cliente(clienteData);
     const clienteGuardado = await nuevoCliente.save();
     res.status(201).json(clienteGuardado);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error al crear cliente: " + error.message });
+    res.status(500).json({ message: "Error al crear cliente: " + error.message });
   }
-};
-
-// Actualizar cliente
-const actualizarCliente = async (req, res) => {
-  try {
-    const cliente = await Cliente.findById(req.params.id);
-    if (!cliente) {
-      return res.status(404).json({ message: "Cliente no encontrado" });
-    }
-
-    Object.assign(cliente, req.body);
-
-    const clienteActualizado = await cliente.save();
-    res.status(200).json(clienteActualizado);
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error al actualizar cliente: " + error.message });
-  }
-};
-
-module.exports = {
-  obtenerClientes,
-  crearCliente,
-  actualizarCliente,
 };
