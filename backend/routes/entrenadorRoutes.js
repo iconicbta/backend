@@ -1,18 +1,22 @@
 const express = require("express");
-const router = express.Router();
-const { protect } = require("../middleware/authMiddleware");
 const {
-  listarEntrenadores,
-  agregarEntrenador,
+  obtenerEntrenadores,
   obtenerEntrenadorPorId,
-  editarEntrenador,
+  crearEntrenador,
+  actualizarEntrenador,
   eliminarEntrenador,
-} = require("../controllers/entrenadoresController");
+  listarEquipos, // 👈 importar aquí
+} = require("../controllers/entrenadorController");
 
-router.get("/", protect, listarEntrenadores);
-router.get("/:id", protect, obtenerEntrenadorPorId);
-router.put("/:id", protect, editarEntrenador);
-router.post("/", protect, agregarEntrenador);
-router.delete("/:id", protect, eliminarEntrenador);
+const router = express.Router();
+
+router.get("/", obtenerEntrenadores);
+router.get("/:id", obtenerEntrenadorPorId);
+router.post("/", crearEntrenador);
+router.put("/:id", actualizarEntrenador);
+router.delete("/:id", eliminarEntrenador);
+
+// 👇 Nueva ruta para equipos
+router.get("/equipos/listar", listarEquipos);
 
 module.exports = router;
