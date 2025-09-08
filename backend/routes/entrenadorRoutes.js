@@ -5,19 +5,20 @@ const {
   crearEntrenador,
   actualizarEntrenador,
   eliminarEntrenador,
-  listarEquipos, // 👈 importar aquí
+  listarEquipos,
 } = require("../controllers/entrenadoresController");
+const { protect } = require("../middleware/authMiddleware"); // si usas auth
 
 const router = express.Router();
 
-router.get("/", obtenerEntrenadores);
-router.get("/:id", obtenerEntrenadorPorId);
-router.post("/", crearEntrenador);
-router.put("/:id", actualizarEntrenador);
-router.delete("/:id", eliminarEntrenador);
+// Lista de entrenadores
+router.get("/", protect, obtenerEntrenadores);
+router.get("/:id", protect, obtenerEntrenadorPorId);
+router.post("/", protect, crearEntrenador);
+router.put("/:id", protect, actualizarEntrenador);
+router.delete("/:id", protect, eliminarEntrenador);
 
-// 👇 Nueva ruta para equipos
-router.get("/equipos/listar", listarEquipos);
+// 👇 NUEVO: lista de equipos (especialidades únicas)
+router.get("/equipos", protect, listarEquipos);
 
 module.exports = router;
-
