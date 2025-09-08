@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+
 const clienteSchema = new mongoose.Schema({
   numeroIdentificacion: { type: String, required: true, unique: true },
   nombre: { type: String, required: true },
@@ -13,7 +14,10 @@ const clienteSchema = new mongoose.Schema({
   tallaTrenSuperior: { type: String },
   tallaTrenInferior: { type: String },
   nombreResponsable: { type: String },
-  direccion: { type: String }, // Aseguramos que esté definido
+  direccion: { type: String },
+  // 👇 NUEVO CAMPO: equipo (nombre del equipo)
+  equipo: { type: String, required: true, trim: true },
+
   fechaRegistro: { type: Date, default: Date.now },
   estado: { type: String, enum: ["activo", "inactivo"], default: "activo" },
   membresias: [{ type: mongoose.Schema.Types.ObjectId, ref: "Membresia" }],
