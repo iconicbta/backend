@@ -1,3 +1,4 @@
+// backend/routes/entrenadorRoutes.js
 const express = require("express");
 const {
   obtenerEntrenadores,
@@ -13,12 +14,14 @@ const router = express.Router();
 
 // Lista de entrenadores
 router.get("/", protect, obtenerEntrenadores);
+
+// 👇 NUEVO: lista de equipos (especialidades únicas)
+// IMPORTANTE: debe ir antes de la ruta con /:id
+router.get("/equipos", protect, listarEquipos);
+
 router.get("/:id", protect, obtenerEntrenadorPorId);
 router.post("/", protect, crearEntrenador);
 router.put("/:id", protect, actualizarEntrenador);
 router.delete("/:id", protect, eliminarEntrenador);
-
-// 👇 NUEVO: lista de equipos (especialidades únicas)
-router.get("/equipos", protect, listarEquipos);
 
 module.exports = router;
