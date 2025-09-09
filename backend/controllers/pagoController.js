@@ -18,9 +18,18 @@ const listarPagos = async (req, res) => {
     }
 
     let pagos = await Pago.find(query)
-      .populate("cliente", "nombre apellido equipo") // 👈 incluir equipo
-      .populate("producto", "nombre precio")
-      .populate("creadoPor", "nombre")
+      .populate({
+        path: "cliente",
+        select: "nombre apellido numeroIdentificacion equipo", // 👈 equipo siempre incluido
+      })
+      .populate({
+        path: "producto",
+        select: "nombre precio",
+      })
+      .populate({
+        path: "creadoPor",
+        select: "nombre",
+      })
       .lean();
 
     if (nombreCliente) {
@@ -39,7 +48,9 @@ const listarPagos = async (req, res) => {
     const total = pagos.reduce((sum, pago) => sum + (pago.monto || 0), 0);
     res.json({ pagos, total });
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al listar pagos", error: error.message });
+    res
+      .status(500)
+      .json({ mensaje: "Error al listar pagos", error: error.message });
   }
 };
 
@@ -54,12 +65,19 @@ const consultarPagosPorCedula = async (req, res) => {
     }
 
     const pagos = await Pago.find({ cliente: cliente._id })
-      .populate("cliente", "nombre apellido equipo") // 👈 incluir equipo
-      .populate("producto", "nombre precio")
+      .populate({
+        path: "cliente",
+        select: "nombre apellido numeroIdentificacion equipo",
+      })
+      .populate({ path: "producto", select: "nombre precio" })
       .lean();
+
     res.json(pagos);
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al consultar pagos", error: error.message });
+    res.status(500).json({
+      mensaje: "Error al consultar pagos",
+      error: error.message,
+    });
   }
 };
 
@@ -111,9 +129,23 @@ const agregarPago = async (req, res) => {
     });
     const pagoGuardado = await nuevoPago.save();
 
-    res.status(201).json({ mensaje: "Pago creado con éxito", pago: pagoGuardado });
+    // 👇 devolver con populate para ver equipo de inmediato
+    const pagoConPopulate = await Pago.findById(pagoGuardado._id)
+      .populate({
+        path: "cliente",
+        select: "nombre apellido numeroIdentificacion equipo",
+      })
+      .populate({ path: "producto", select: "nombre precio" })
+      .populate({ path: "creadoPor", select: "nombre" })
+      .lean();
+
+    res
+      .status(201)
+      .json({ mensaje: "Pago creado con éxito", pago: pagoConPopulate });
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al crear pago", error: error.message });
+    res
+      .status(500)
+      .json({ mensaje: "Error al crear pago", error: error.message });
   }
 };
 
@@ -121,16 +153,22 @@ const agregarPago = async (req, res) => {
 const obtenerPagoPorId = async (req, res) => {
   try {
     const pago = await Pago.findById(req.params.id)
-      .populate("cliente", "nombre apellido equipo") // 👈 incluir equipo
-      .populate("producto", "nombre precio")
-      .populate("creadoPor", "nombre")
+      .populate({
+        path: "cliente",
+        select: "nombre apellido numeroIdentificacion equipo",
+      })
+      .populate({ path: "producto", select: "nombre precio" })
+      .populate({ path: "creadoPor", select: "nombre" })
       .lean();
+
     if (!pago) {
       return res.status(404).json({ mensaje: "Pago no encontrado" });
     }
     res.json(pago);
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al obtener pago", error: error.message });
+    res
+      .status(500)
+      .json({ mensaje: "Error al obtener pago", error: error.message });
   }
 };
 
@@ -138,7 +176,10 @@ const obtenerPagoPorId = async (req, res) => {
 const editarPago = async (req, res) => {
   try {
     const { cliente, producto, cantidad, monto, fecha, metodoPago } = req.body;
-    const pagoExistente = await Pago.findById(req.params.id).populate("producto", "stock");
+    const pagoExistente = await Pago.findById(req.params.id).populate(
+      "producto",
+      "stock"
+    );
 
     if (!pagoExistente) {
       return res.status(404).json({ mensaje: "Pago no encontrado" });
@@ -151,12 +192,15 @@ const editarPago = async (req, res) => {
 
     if (producto && producto !== pagoExistente.producto?.toString()) {
       const productoDoc = await Producto.findById(producto);
-      if (!productoDoc) return res.status(404).json({ mensaje: "Producto no encontrado" });
+      if (!productoDoc)
+        return res.status(404).json({ mensaje: "Producto no encontrado" });
       if (productoDoc.stock < cantidad) {
         return res.status(400).json({ mensaje: "Stock insuficiente" });
       }
       if (pagoExistente.producto) {
-        const productoAnterior = await Producto.findById(pagoExistente.producto);
+        const productoAnterior = await Producto.findById(
+          pagoExistente.producto
+        );
         if (productoAnterior) {
           productoAnterior.stock += pagoExistente.cantidad || 0;
           await productoAnterior.save();
@@ -187,14 +231,19 @@ const editarPago = async (req, res) => {
       },
       { new: true, runValidators: true }
     )
-      .populate("cliente", "nombre apellido equipo") // 👈 incluir equipo
-      .populate("producto", "nombre precio")
-      .populate("creadoPor", "nombre")
+      .populate({
+        path: "cliente",
+        select: "nombre apellido numeroIdentificacion equipo",
+      })
+      .populate({ path: "producto", select: "nombre precio" })
+      .populate({ path: "creadoPor", select: "nombre" })
       .lean();
 
     res.json({ mensaje: "Pago actualizado con éxito", pago: pagoActualizado });
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al actualizar pago", error: error.message });
+    res
+      .status(500)
+      .json({ mensaje: "Error al actualizar pago", error: error.message });
   }
 };
 
@@ -217,7 +266,9 @@ const eliminarPago = async (req, res) => {
     await Pago.findByIdAndDelete(req.params.id);
     res.json({ mensaje: "Pago eliminado con éxito" });
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al eliminar pago", error: error.message });
+    res
+      .status(500)
+      .json({ mensaje: "Error al eliminar pago", error: error.message });
   }
 };
 
@@ -234,12 +285,24 @@ const obtenerIngresos = async (req, res) => {
       };
     }
 
-    const pagos = await Pago.find(query).lean();
-    const totalIngresos = pagos.reduce((sum, pago) => sum + (pago.monto || 0), 0);
+    const pagos = await Pago.find(query)
+      .populate({
+        path: "cliente",
+        select: "nombre apellido numeroIdentificacion equipo",
+      })
+      .lean();
+
+    const totalIngresos = pagos.reduce(
+      (sum, pago) => sum + (pago.monto || 0),
+      0
+    );
 
     res.json({ ingresos: totalIngresos, detalles: pagos });
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al calcular ingresos", error: error.message });
+    res.status(500).json({
+      mensaje: "Error al calcular ingresos",
+      error: error.message,
+    });
   }
 };
 
