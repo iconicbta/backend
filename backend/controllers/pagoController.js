@@ -1,3 +1,4 @@
+// backend/controllers/pagoController.js
 const Pago = require("../models/Pago");
 const Cliente = require("../models/Cliente");
 const Producto = require("../models/Producto");
@@ -17,15 +18,17 @@ const listarPagos = async (req, res) => {
       query.fecha = { $gte: start, $lte: end };
     }
 
+    // 🔑 Traemos todos los pagos con populate de cliente (incluye equipo)
     let pagos = await Pago.find(query)
       .populate({
         path: "cliente",
-        select: "nombre apellido equipo", // 👈 aseguramos equipo
+        select: "nombre apellido equipo",
       })
       .populate("producto", "nombre precio")
       .populate("creadoPor", "nombre")
       .lean();
 
+    // Filtro por nombre del cliente
     if (nombreCliente) {
       pagos = pagos.filter((pago) => {
         const nombreCompleto = `${pago.cliente?.nombre || ""} ${
@@ -35,6 +38,7 @@ const listarPagos = async (req, res) => {
       });
     }
 
+    // Filtro por equipo
     if (equipo) {
       pagos = pagos.filter((pago) => pago.cliente?.equipo === equipo);
     }
@@ -61,11 +65,14 @@ const consultarPagosPorCedula = async (req, res) => {
     const pagos = await Pago.find({ cliente: cliente._id })
       .populate({
         path: "cliente",
-        select: "nombre apellido equipo", // 👈 aseguramos equipo
+        select: "nombre apellido equipo",
       })
       .populate("producto", "nombre precio")
       .lean();
-    res.json(pagos);
+
+    const total = pagos.reduce((sum, pago) => sum + (pago.monto || 0), 0);
+
+    res.json({ pagos, total });
   } catch (error) {
     res
       .status(500)
@@ -119,13 +126,16 @@ const agregarPago = async (req, res) => {
       creadoPor: req.user._id,
       estado: "Completado",
     });
+
     const pagoGuardado = await nuevoPago.save();
 
     res
       .status(201)
       .json({ mensaje: "Pago creado con éxito", pago: pagoGuardado });
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al crear pago", error: error.message });
+    res
+      .status(500)
+      .json({ mensaje: "Error al crear pago", error: error.message });
   }
 };
 
@@ -135,17 +145,21 @@ const obtenerPagoPorId = async (req, res) => {
     const pago = await Pago.findById(req.params.id)
       .populate({
         path: "cliente",
-        select: "nombre apellido equipo", // 👈 aseguramos equipo
+        select: "nombre apellido equipo",
       })
       .populate("producto", "nombre precio")
       .populate("creadoPor", "nombre")
       .lean();
+
     if (!pago) {
       return res.status(404).json({ mensaje: "Pago no encontrado" });
     }
+
     res.json(pago);
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al obtener pago", error: error.message });
+    res
+      .status(500)
+      .json({ mensaje: "Error al obtener pago", error: error.message });
   }
 };
 
