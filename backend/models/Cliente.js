@@ -1,43 +1,22 @@
 const mongoose = require("mongoose");
 
 const clienteSchema = new mongoose.Schema({
-  numeroIdentificacion: { type: String, required: true, unique: true },
   nombre: { type: String, required: true },
-  apellido: { type: String, required: true },
-  telefono: { type: String },
-  email: { type: String },
+  apellido: { type: String, default: "" },
+  email: { type: String, required: true },
+  telefono: { type: String, default: "" },
+  direccion: { type: String, default: "" },
+  estado: { type: String, default: "activo", enum: ["activo", "inactivo"] },
+  numeroIdentificacion: { type: String, required: true, unique: true },
   fechaNacimiento: { type: Date, required: true },
   edad: { type: Number, required: true },
-  tipoDocumento: { 
-    type: String, 
-    enum: ["C.C", "T.I", "RC", "PPT"], 
-    default: "C.C", 
-    required: true 
-  },
-  rh: { type: String },
-  eps: { type: String },
-  tallaTrenSuperior: { type: String },
-  tallaTrenInferior: { type: String },
-  nombreResponsable: { type: String },
-  direccion: { type: String },
-
-  // 👇 Usamos especialidad en vez de equipo
-  especialidad: { type: String, required: true, trim: true },
-
-  fechaRegistro: { type: Date, default: Date.now },
-  estado: { type: String, enum: ["activo", "inactivo"], default: "activo" },
-  membresias: [{ type: mongoose.Schema.Types.ObjectId, ref: "Membresia" }],
-});
-
-// Pre-save hook para validar tipos
-clienteSchema.pre("save", function (next) {
-  if (this.edad && typeof this.edad === "string") {
-    this.edad = parseInt(this.edad);
-  }
-  if (this.fechaNacimiento && typeof this.fechaNacimiento === "string") {
-    this.fechaNacimiento = new Date(this.fechaNacimiento);
-  }
-  next();
+  tipoDocumento: { type: String, required: true },
+  rh: { type: String, default: "" },
+  eps: { type: String, default: "" },
+  tallaTrenSuperior: { type: String, default: "" },
+  tallaTrenInferior: { type: String, default: "" },
+  nombreResponsable: { type: String, default: "" },
+  especialidad: { type: String, required: true }, // Cambiado de equipo a especialidad
 });
 
 module.exports = mongoose.model("Cliente", clienteSchema);
