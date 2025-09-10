@@ -45,11 +45,9 @@ const crearCliente = async (req, res) => {
       tallaTrenSuperior,
       tallaTrenInferior,
       nombreResponsable,
-      equipo, // 👈 NUEVO
+      especialidad, // Cambiado de equipo a especialidad
     } = req.body;
-
     console.log("Datos recibidos para crear cliente:", req.body);
-
     // Validaciones
     if (!nombre || !email || !numeroIdentificacion || !fechaNacimiento || !edad || !tipoDocumento) {
       return res.status(400).json({
@@ -57,8 +55,8 @@ const crearCliente = async (req, res) => {
           "Nombre, email, número de identificación, fecha de nacimiento, edad y tipo de documento son obligatorios",
       });
     }
-    if (!equipo || !equipo.trim()) {
-      return res.status(400).json({ message: "El equipo es obligatorio" });
+    if (!especialidad || !especialidad.trim()) {
+      return res.status(400).json({ message: "La especialidad es obligatoria" });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: "Correo electrónico inválido" });
@@ -69,12 +67,10 @@ const crearCliente = async (req, res) => {
     if (estado && !["activo", "inactivo"].includes(estado.toLowerCase())) {
       return res.status(400).json({ message: "Estado debe ser 'activo' o 'inactivo'" });
     }
-
     const clienteExistente = await Cliente.findOne({ numeroIdentificacion });
     if (clienteExistente) {
       return res.status(400).json({ message: "El número de identificación ya está registrado" });
     }
-
     // Convertir tipos
     const clienteData = {
       nombre,
@@ -92,9 +88,8 @@ const crearCliente = async (req, res) => {
       tallaTrenSuperior: tallaTrenSuperior || "",
       tallaTrenInferior: tallaTrenInferior || "",
       nombreResponsable: nombreResponsable || "",
-      equipo: equipo.trim(), // 👈 guardar equipo
+      especialidad: especialidad.trim(), // Cambiado de equipo a especialidad
     };
-
     const nuevoCliente = new Cliente(clienteData);
     const clienteGuardado = await nuevoCliente.save();
     res.status(201).json(clienteGuardado);
@@ -137,22 +132,20 @@ const actualizarCliente = async (req, res) => {
       tallaTrenSuperior,
       tallaTrenInferior,
       nombreResponsable,
-      equipo, // 👈 NUEVO
+      especialidad, // Cambiado de equipo a especialidad
     } = req.body;
-
     const cliente = await Cliente.findById(req.params.id);
     if (!cliente) {
       return res.status(404).json({ message: "Cliente no encontrado" });
     }
-
     if (!nombre || !email || !numeroIdentificacion || !fechaNacimiento || !edad || !tipoDocumento) {
       return res.status(400).json({
         message:
           "Nombre, email, número de identificación, fecha de nacimiento, edad y tipo de documento son obligatorios",
       });
     }
-    if (!equipo || !equipo.trim()) {
-      return res.status(400).json({ message: "El equipo es obligatorio" });
+    if (!especialidad || !especialidad.trim()) {
+      return res.status(400).json({ message: "La especialidad es obligatoria" });
     }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: "Correo electrónico inválido" });
@@ -169,7 +162,6 @@ const actualizarCliente = async (req, res) => {
         return res.status(400).json({ message: "El número de identificación ya está registrado" });
       }
     }
-
     cliente.nombre = nombre || cliente.nombre;
     cliente.apellido = apellido || cliente.apellido || "";
     cliente.email = email || cliente.email;
@@ -185,8 +177,7 @@ const actualizarCliente = async (req, res) => {
     cliente.tallaTrenSuperior = tallaTrenSuperior || cliente.tallaTrenSuperior || "";
     cliente.tallaTrenInferior = tallaTrenInferior || cliente.tallaTrenInferior || "";
     cliente.nombreResponsable = nombreResponsable || cliente.nombreResponsable || "";
-    cliente.equipo = equipo ? equipo.trim() : cliente.equipo; // 👈 actualizar equipo
-
+    cliente.especialidad = especialidad ? especialidad.trim() : cliente.especialidad; // Cambiado de equipo a especialidad
     const clienteActualizado = await cliente.save();
     console.log("Cliente actualizado:", clienteActualizado);
     res.status(200).json(clienteActualizado);
@@ -215,17 +206,13 @@ const obtenerClientesActivos = async (req, res) => {
     console.log("Iniciando obtenerClientesActivos...");
     const fechaActual = new Date();
     console.log("Fecha actual:", fechaActual);
-
     const membresiasActivas = await Membresia.find({
       estado: "activa",
       fechafin: { $gt: fechaActual },
     }).distinct("cliente");
-
     console.log("Membresías activas encontradas:", membresiasActivas);
-
     const clientesActivos = membresiasActivas.length;
     console.log("Clientes activos encontrados:", clientesActivos);
-
     res.status(200).json({ clientesActivos });
   } catch (error) {
     console.error("Error al obtener clientes activos:", error.message);
