@@ -1,29 +1,24 @@
-const Especialidad = require("../models/Especialidad");
+const Cliente = require("../models/Cliente");
 
-// Obtener todas las especialidades (equipos)
+// Obtener todas las especialidades desde los clientes
 const getEspecialidades = async (req, res) => {
   try {
-    const especialidades = await Especialidad.find().sort({ nombre: 1 });
-    res.json(especialidades);
+    // Obtiene valores únicos del campo "especialidad" en la colección clientes
+    const especialidades = await Cliente.distinct("especialidad");
+
+    // Formatear para que el frontend reciba igual que antes
+    const lista = especialidades.map((nombre, i) => ({
+      _id: i.toString(),
+      nombre,
+    }));
+
+    res.json(lista);
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al obtener especialidades", error: error.message });
+    res.status(500).json({
+      mensaje: "Error al obtener especialidades",
+      error: error.message,
+    });
   }
 };
 
-// Crear una especialidad nueva
-const createEspecialidad = async (req, res) => {
-  try {
-    const { nombre } = req.body;
-    if (!nombre) {
-      return res.status(400).json({ mensaje: "El nombre es obligatorio" });
-    }
-    const nueva = new Especialidad({ nombre });
-    await nueva.save();
-    res.status(201).json(nueva);
-  } catch (error) {
-    res.status(500).json({ mensaje: "Error al crear especialidad", error: error.message });
-  }
-};
-
-module.exports = { getEspecialidades, createEspecialidad };
-
+module.exports = { getEspecialidades };
