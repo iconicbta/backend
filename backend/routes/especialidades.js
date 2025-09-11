@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { getEspecialidades, createEspecialidad } = require("../controllers/especialidadController");
 
+
 // 🚨 Pública (sin token) → para cargar equipos en el frontend
 router.get("/", getEspecialidades);
 
