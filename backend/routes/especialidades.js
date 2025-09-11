@@ -1,12 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { getEspecialidades, createEspecialidad } = require("../controllers/especialidadController");
+const { getEspecialidades } = require("../controllers/especialidadController");
 
-
-// 🚨 Pública (sin token) → para cargar equipos en el frontend
+// Solo GET porque ya se crean en clientes
 router.get("/", getEspecialidades);
-
-// 🔒 Privada (solo admin) → si luego quieres proteger creación, ponle `protect`
-router.post("/", createEspecialidad);
 
 module.exports = router;
