@@ -37,10 +37,12 @@ const listarPagos = async (req, res) => {
       });
     }
 
-    // Filtrar por especialidad
+    // Filtrar por especialidad (equipo)
     if (especialidad) {
       pagos = pagos.filter(
-        (pago) => pago.cliente?.especialidad === especialidad
+        (pago) =>
+          pago.cliente?.especialidad?.toLowerCase() ===
+          especialidad.toLowerCase()
       );
     }
 
