@@ -1,18 +1,15 @@
 const mongoose = require("mongoose");
 
-const EspecialidadSchema = new mongoose.Schema(
+const especialidadSchema = new mongoose.Schema(
   {
     nombre: {
       type: String,
       required: true,
-      trim: true,
-    },
-    descripcion: {
-      type: String,
+      unique: true,
       trim: true,
     },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Especialidad", EspecialidadSchema);
+module.exports = mongoose.model("Especialidad", especialidadSchema);
