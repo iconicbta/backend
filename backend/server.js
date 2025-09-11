@@ -8,12 +8,15 @@ const { protect } = require("./middleware/authMiddleware");
 
 const app = express();
 
-// Configuración de CORS
+// ================================
+// 🔹 Configuración de CORS
+// ================================
 const allowedOrigins = [
   "https://frontendiconic.vercel.app",
-  /^https:\/\/frontendiconic.*\.vercel\.app$/,
+  /^https:\/\/frontendiconic.*\.vercel\.app$/, // subdominios
   "http://localhost:3000",
 ];
+
 const corsOptions = {
   origin: (origin, callback) => {
     console.log(`🔍 Origen recibido: ${origin}`);
@@ -29,18 +32,24 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200,
 };
+
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
-
 app.use(express.json());
 
-// Log de solicitudes
+// ================================
+// 🔹 Middleware de log de solicitudes
+// ================================
 app.use((req, res, next) => {
-  console.log(`📩 Solicitud recibida: ${req.method} ${req.url} - ${new Date().toISOString()}`);
+  console.log(
+    `📩 ${req.method} ${req.url} - ${new Date().toISOString()}`
+  );
   next();
 });
 
-// Conectar a MongoDB
+// ================================
+// 🔹 Conectar a MongoDB
+// ================================
 console.log("Iniciando conexión a MongoDB...");
 connectDB()
   .then(() => console.log("✅ Conexión a MongoDB establecida"))
@@ -49,7 +58,9 @@ connectDB()
     process.exit(1);
   });
 
-// Rutas
+// ================================
+// 🔹 Importar Rutas
+// ================================
 const clienteRoutes = require("./routes/clienteRoutes");
 const membresiaRoutes = require("./routes/membresiaRoutes");
 const entrenadorRoutes = require("./routes/entrenadorRoutes");
@@ -64,9 +75,16 @@ const asistenciaRoutes = require("./routes/asistenciaRoutes");
 const rutinaRoutes = require("./routes/rutinas");
 const composicionCorporalRoutes = require("./routes/composicionCorporal");
 const medicionPorristasRoutes = require("./routes/medicionPorristas");
+const especialidadesRoutes = require("./routes/especialidades"); // ✅ NUEVO
 
-// 🚨 Aplica `protect` SOLO a rutas privadas
-app.use("/api/auth", authRoutes); // 🔓 Pública (login, register, etc.)
+// ================================
+// 🔹 Registrar Rutas
+// ================================
+// Públicas
+app.use("/api/auth", authRoutes);
+app.use("/api/especialidades", especialidadesRoutes); // ✅ Pública para que frontend pueda consultar equipos
+
+// Privadas (requieren login con token)
 app.use("/api/clientes", protect, clienteRoutes);
 app.use("/api/membresias", protect, membresiaRoutes);
 app.use("/api/entrenadores", protect, entrenadorRoutes);
@@ -81,12 +99,16 @@ app.use("/api/rutinas", protect, rutinaRoutes);
 app.use("/api/composicion-corporal", protect, composicionCorporalRoutes);
 app.use("/api/medicion-porristas", protect, medicionPorristasRoutes);
 
-// Ruta raíz pública
+// ================================
+// 🔹 Ruta raíz pública
+// ================================
 app.get("/", (req, res) => {
   res.json({ mensaje: "¡Servidor de Admin-Gimnasios funcionando correctamente!" });
 });
 
-// Errores
+// ================================
+// 🔹 Manejo de errores
+// ================================
 app.use((req, res) => {
   if (req.url.startsWith("/api")) {
     console.log(`⚠️ Ruta no encontrada: ${req.method} ${req.url}`);
@@ -104,7 +126,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Iniciar servidor
+// ================================
+// 🔹 Iniciar servidor
+// ================================
 const PORT = process.env.PORT || 10000; // Render asigna puerto dinámico
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
