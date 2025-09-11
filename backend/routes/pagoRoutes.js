@@ -1,3 +1,4 @@
+// backend/routes/pagoRoutes.js
 const express = require("express");
 const router = express.Router();
 const Pago = require("../models/Pago");
@@ -6,7 +7,53 @@ const Cliente = require("../models/Cliente");
 const Producto = require("../models/Producto");
 const { protect, verificarPermisos } = require("../middleware/authMiddleware");
 
-// Solo recepcionistas, admins y usuarios pueden acceder
+// 📌 NUEVO ENDPOINT: Reporte de pagos por equipos
+router.get(
+  "/reporte",
+  protect,
+  verificarPermisos(["admin", "recepcionista", "user"]),
+  async (req, res) => {
+    try {
+      console.log("Solicitud GET recibida en /api/pagos/reporte", req.query);
+
+      const { fechaInicio, fechaFin, especialidad } = req.query;
+      const query = { estado: "Completado" };
+
+      // 📅 Filtros por fecha
+      if (fechaInicio && fechaFin) {
+        query.fecha = {
+          $gte: new Date(fechaInicio),
+          $lte: new Date(fechaFin),
+        };
+      }
+
+      let pagos = await Pago.find(query)
+        .populate({
+          path: "cliente",
+          select: "nombre apellido especialidad",
+        })
+        .populate("producto", "nombre precio")
+        .lean();
+
+      // 🔹 Filtrar por equipo/especialidad si se pasa en query
+      if (especialidad) {
+        pagos = pagos.filter(
+          (pago) => pago.cliente?.especialidad === especialidad
+        );
+      }
+
+      res.json({ pagos });
+    } catch (error) {
+      console.error("Error en /api/pagos/reporte:", error.stack);
+      res.status(500).json({
+        mensaje: "Error al generar el reporte de pagos",
+        detalle: error.message || "Error desconocido",
+      });
+    }
+  }
+);
+
+// Obtener pago por ID
 router.get(
   "/:id",
   protect,
@@ -38,6 +85,7 @@ router.get(
   }
 );
 
+// Actualizar pago
 router.put(
   "/:id",
   protect,
@@ -96,7 +144,7 @@ router.put(
           monto: Number(monto),
           fecha: fechaPago,
           metodoPago,
-          estado: "Completado", // Asegurar estado al actualizar
+          estado: "Completado",
         },
         { new: true, runValidators: true }
       )
@@ -146,6 +194,7 @@ router.put(
   }
 );
 
+// Listar pagos
 router.get(
   "/",
   protect,
@@ -158,7 +207,7 @@ router.get(
         throw new Error("Modelo Pago no está correctamente definido");
       }
 
-      const query = { estado: "Completado" }; // ✅ restauramos el filtro
+      const query = { estado: "Completado" };
       if (req.query.fechaInicio && req.query.fechaFin) {
         query.fecha = {
           $gte: new Date(req.query.fechaInicio),
@@ -172,12 +221,9 @@ router.get(
         .populate("creadoPor", "nombre")
         .lean();
 
-      console.log("Estados de los pagos:", pagos.map((p) => p.estado));
       console.log("Pagos encontrados:", JSON.stringify(pagos, null, 2));
 
       const total = pagos.reduce((sum, pago) => sum + (pago.monto || 0), 0);
-      console.log("Total calculado:", total);
-
       res.json({ pagos, total });
     } catch (error) {
       console.error("Error al listar pagos:", error.stack);
@@ -190,6 +236,7 @@ router.get(
   }
 );
 
+// Crear pago
 router.post(
   "/",
   protect,
@@ -244,7 +291,7 @@ router.post(
         fecha: fechaPago,
         metodoPago,
         creadoPor: req.user._id,
-        estado: "Completado", // ✅ se mantiene al crear
+        estado: "Completado",
       });
 
       const pagoGuardado = await nuevoPago.save();
@@ -276,6 +323,7 @@ router.post(
   }
 );
 
+// Consultar pagos por número de identificación
 router.get(
   "/consultar/:numeroIdentificacion",
   protect,
@@ -327,6 +375,7 @@ router.get(
   }
 );
 
+// Ingresos totales
 router.get(
   "/ingresos",
   protect,
@@ -335,7 +384,7 @@ router.get(
     try {
       console.log("Solicitud GET recibida en /api/pagos/ingresos", req.query);
 
-      const query = { estado: "Completado" }; // ✅ filtro consistente
+      const query = { estado: "Completado" };
       if (req.query.fechaInicio && req.query.fechaFin) {
         query.fecha = {
           $gte: new Date(req.query.fechaInicio),
