@@ -5,8 +5,10 @@ const Producto = require("../models/Producto");
 // Listar todos los pagos (protegida)
 const listarPagos = async (req, res) => {
   try {
-    const { fechaInicio, fechaFin, nombreCliente, equipo } = req.query;
+    const { fechaInicio, fechaFin, nombreCliente, especialidad } = req.query;
     const query = { estado: "Completado" };
+
+    // Filtrar por rango de fechas
     if (fechaInicio && fechaFin) {
       const start = new Date(fechaInicio);
       const end = new Date(fechaFin);
@@ -15,14 +17,17 @@ const listarPagos = async (req, res) => {
       }
       query.fecha = { $gte: start, $lte: end };
     }
+
     let pagos = await Pago.find(query)
       .populate({
         path: "cliente",
-        select: "nombre apellido equipo numeroIdentificacion especialidad",
+        select: "nombre apellido numeroIdentificacion especialidad",
       })
       .populate("producto", "nombre precio")
       .populate("creadoPor", "nombre")
       .lean();
+
+    // Filtrar por nombre de cliente
     if (nombreCliente) {
       pagos = pagos.filter((pago) => {
         const nombreCompleto = `${pago.cliente?.nombre || ""} ${
@@ -31,9 +36,14 @@ const listarPagos = async (req, res) => {
         return nombreCompleto.includes(nombreCliente.toLowerCase().trim());
       });
     }
-    if (equipo) {
-      pagos = pagos.filter((pago) => pago.cliente?.equipo === equipo);
+
+    // Filtrar por especialidad
+    if (especialidad) {
+      pagos = pagos.filter(
+        (pago) => pago.cliente?.especialidad === especialidad
+      );
     }
+
     const total = pagos.reduce((sum, pago) => sum + (pago.monto || 0), 0);
     res.json({ pagos, total });
   } catch (error) {
@@ -51,13 +61,15 @@ const consultarPagosPorCedula = async (req, res) => {
     if (!cliente) {
       return res.status(404).json({ mensaje: "Cliente no encontrado" });
     }
+
     const pagos = await Pago.find({ cliente: cliente._id })
       .populate({
         path: "cliente",
-        select: "nombre apellido equipo numeroIdentificacion especialidad",
+        select: "nombre apellido numeroIdentificacion especialidad",
       })
       .populate("producto", "nombre precio")
       .lean();
+
     const total = pagos.reduce((sum, pago) => sum + (pago.monto || 0), 0);
     res.json({ pagos, total });
   } catch (error) {
@@ -71,31 +83,38 @@ const consultarPagosPorCedula = async (req, res) => {
 const agregarPago = async (req, res) => {
   try {
     const { cliente, producto, cantidad, monto, fecha, metodoPago } = req.body;
+
     if (!cliente || !producto || !cantidad || !monto || !fecha || !metodoPago) {
       return res.status(400).json({
         mensaje: "Faltan campos requeridos",
       });
     }
+
     const fechaPago = new Date(fecha);
     if (isNaN(fechaPago.getTime())) {
       return res.status(400).json({ mensaje: "Fecha inválida" });
     }
+
     const clienteDoc = await Cliente.findById(cliente);
     if (!clienteDoc) {
       return res.status(404).json({ mensaje: "Cliente no encontrado" });
     }
+
     const productoDoc = await Producto.findById(producto);
     if (!productoDoc) {
       return res.status(404).json({ mensaje: "Producto no encontrado" });
     }
+
     if (productoDoc.stock < cantidad) {
       return res.status(400).json({
         mensaje: "Stock insuficiente",
         detalle: `Stock disponible: ${productoDoc.stock}, solicitado: ${cantidad}`,
       });
     }
+
     productoDoc.stock -= cantidad;
     await productoDoc.save();
+
     const nuevoPago = new Pago({
       cliente,
       producto,
@@ -106,6 +125,7 @@ const agregarPago = async (req, res) => {
       creadoPor: req.user._id,
       estado: "Completado",
     });
+
     const pagoGuardado = await nuevoPago.save();
     res
       .status(201)
@@ -123,14 +143,16 @@ const obtenerPagoPorId = async (req, res) => {
     const pago = await Pago.findById(req.params.id)
       .populate({
         path: "cliente",
-        select: "nombre apellido equipo numeroIdentificacion especialidad",
+        select: "nombre apellido numeroIdentificacion especialidad",
       })
       .populate("producto", "nombre precio")
       .populate("creadoPor", "nombre")
       .lean();
+
     if (!pago) {
       return res.status(404).json({ mensaje: "Pago no encontrado" });
     }
+
     res.json(pago);
   } catch (error) {
     res
