@@ -156,4 +156,145 @@ exports.actualizarComposicionCorporal = asyncHandler(async (req, res) => {
   ) {
     return res.status(403).json({
       success: false,
-      message: "No tienes permiso para actualizar esta compos
+      message: "No tienes permiso para actualizar esta composición",
+    });
+  }
+
+  if (fecha) {
+    const fechaValida = new Date(fecha);
+    if (isNaN(fechaValida.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "El formato de la fecha es inválido. Usa formato ISO (YYYY-MM-DD)",
+      });
+    }
+  }
+
+  if (peso && peso <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Peso debe ser un valor positivo",
+    });
+  }
+  if (altura && altura <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Altura debe ser un valor positivo",
+    });
+  }
+  if (porcentajeGrasa && (porcentajeGrasa < 0 || porcentajeGrasa > 100)) {
+    return res.status(400).json({
+      success: false,
+      message: "El porcentaje de grasa debe estar entre 0 y 100",
+    });
+  }
+  if (porcentajeMusculo && (porcentajeMusculo < 0 || porcentajeMusculo > 100)) {
+    return res.status(400).json({
+      success: false,
+      message: "El porcentaje de músculo debe estar entre 0 y 100",
+    });
+  }
+
+  if (
+    numeroIdentificacion &&
+    numeroIdentificacion !== composicion.numeroIdentificacion
+  ) {
+    const cliente = await Cliente.findOne({ numeroIdentificacion });
+    if (!cliente) {
+      return res.status(404).json({
+        success: false,
+        message: "Cliente no encontrado para el nuevo número de identificación",
+      });
+    }
+  }
+
+  const calculatedImc =
+    imc ||
+    (peso && altura
+      ? parseFloat((peso / Math.pow(altura / 100, 2)).toFixed(2))
+      : composicion.imc);
+
+  composicion.numeroIdentificacion =
+    numeroIdentificacion || composicion.numeroIdentificacion;
+  composicion.fecha = fecha || composicion.fecha;
+  composicion.peso = peso || composicion.peso;
+  composicion.altura = altura || composicion.altura;
+  composicion.imc = calculatedImc;
+  composicion.porcentajeGrasa = porcentajeGrasa || composicion.porcentajeGrasa;
+  composicion.porcentajeMusculo =
+    porcentajeMusculo || composicion.porcentajeMusculo;
+  composicion.notas = notas || composicion.notas;
+  composicion.medidas = medidas || composicion.medidas;
+  composicion.objetivo = objetivo || composicion.objetivo;
+
+  const composicionActualizada = await composicion.save();
+  res.json({
+    success: true,
+    message: "Composición corporal actualizada con éxito",
+    composicion: composicionActualizada,
+  });
+});
+
+// @desc    Eliminar una composición corporal
+// @route   DELETE /api/composicion-corporal/:id
+// @access  Private (Admin)
+exports.eliminarComposicionCorporal = asyncHandler(async (req, res) => {
+  const composicion = await ComposicionCorporal.findById(req.params.id);
+  if (!composicion) {
+    return res.status(404).json({
+      success: false,
+      message: "Composición no encontrada",
+    });
+  }
+
+  await composicion.deleteOne();
+  res.json({
+    success: true,
+    message: "Composición corporal eliminada con éxito",
+  });
+});
+
+// @desc    Consultar composiciones corporales por número de identificación
+// @route   GET /api/composicion-corporal/cliente/:identificacion
+// @access  Public
+exports.consultarComposicionesPorCliente = asyncHandler(async (req, res) => {
+  const { identificacion } = req.params;
+
+  if (!identificacion || !identificacion.toString().trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Número de identificación inválido",
+    });
+  }
+
+  const cliente = await Cliente.findOne({
+    numeroIdentificacion: identificacion,
+  });
+  if (!cliente) {
+    return res.status(404).json({
+      success: false,
+      message:
+        "Cliente no encontrado para el número de identificación proporcionado",
+    });
+  }
+
+  const composiciones = await ComposicionCorporal.find({
+    numeroIdentificacion: identificacion,
+  })
+    .populate("creadoPor", "nombre email")
+    .sort({ fecha: -1 })
+    .lean();
+
+  if (!composiciones || composiciones.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: "No se encontraron registros para esta identificación.",
+    });
+  }
+
+  res.json({
+    success: true,
+    data: composiciones,
+  });
+});
