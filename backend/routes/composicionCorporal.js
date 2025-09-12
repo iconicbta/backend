@@ -11,7 +11,7 @@ const {
 const { protect, verificarPermisos } = require("../middleware/authMiddleware");
 
 // Ruta pública para consultar composiciones por número de identificación
-// Debe ir primero para evitar conflicto con la ruta '/:id'
+// ⚠️ Debe ir primero para evitar conflicto con la ruta '/:id'
 router.get("/cliente/:identificacion", consultarComposicionesPorCliente);
 
 // Rutas privadas
