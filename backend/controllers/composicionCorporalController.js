@@ -95,7 +95,7 @@ exports.crearComposicionCorporal = asyncHandler(async (req, res) => {
 // @access  Private (Admin)
 exports.obtenerComposicionesCorporales = asyncHandler(async (req, res) => {
   const composiciones = await ComposicionCorporal.find()
-    .populate("creadoPor", "nombre email") // ✅ Usar campos que sí existan
+    .populate("creadoPor", "nombre email")
     .lean();
   res.json({
     success: true,
@@ -235,71 +235,4 @@ exports.actualizarComposicionCorporal = asyncHandler(async (req, res) => {
 });
 
 // @desc    Eliminar una composición corporal
-// @route   DELETE /api/composicion-corporal/:id
-// @access  Private (Admin)
-exports.eliminarComposicionCorporal = asyncHandler(async (req, res) => {
-  const composicion = await ComposicionCorporal.findById(req.params.id);
-
-  if (!composicion) {
-    return res.status(404).json({
-      success: false,
-      message: "Composición no encontrada",
-    });
-  }
-
-  if (req.user.rol !== "admin") {
-    return res.status(403).json({
-      success: false,
-      message: "No tienes permiso para eliminar esta composición",
-    });
-  }
-
-  await composicion.deleteOne();
-  res.json({
-    success: true,
-    message: "Composición corporal eliminada con éxito",
-  });
-});
-
-// @desc    Consultar composiciones corporales por número de identificación
-// @route   GET /api/composicion-corporal/cliente/:identificacion
-// @access  Public
-exports.consultarComposicionesPorCliente = asyncHandler(async (req, res) => {
-  const { identificacion } = req.params;
-
-  if (!identificacion || isNaN(identificacion)) {
-    return res.status(400).json({
-      success: false,
-      message: "Número de identificación inválido",
-    });
-  }
-
-  const cliente = await Cliente.findOne({
-    numeroIdentificacion: identificacion,
-  });
-  if (!cliente) {
-    return res.status(404).json({
-      success: false,
-      message:
-        "Cliente no encontrado para el número de identificación proporcionado",
-    });
-  }
-
-  const composiciones = await ComposicionCorporal.find({
-    numeroIdentificacion: identificacion,
-  })
-    .populate("creadoPor", "nombre email")
-    .lean();
-
-  if (!composiciones || composiciones.length === 0) {
-    return res.status(404).json({
-      success: false,
-      message: "No se encontraron registros para esta identificación.",
-    });
-  }
-
-  res.json({
-    success: true,
-    data: composiciones,
-  });
-});
+// @route   DELETE /api/composi
