@@ -7,7 +7,6 @@ const asyncHandler = require("express-async-handler");
 // @route   POST /api/composicion-corporal
 // @access  Private (Admin o Entrenador)
 exports.crearComposicionCorporal = asyncHandler(async (req, res) => {
-  console.log("Iniciando crearComposicionCorporal...");
   const {
     numeroIdentificacion,
     fecha,
@@ -44,6 +43,7 @@ exports.crearComposicionCorporal = asyncHandler(async (req, res) => {
       message: "Peso y altura deben ser valores positivos",
     });
   }
+
   if (porcentajeGrasa && (porcentajeGrasa < 0 || porcentajeGrasa > 100)) {
     return res.status(400).json({
       success: false,
@@ -66,7 +66,7 @@ exports.crearComposicionCorporal = asyncHandler(async (req, res) => {
     });
   }
 
-  const calculatedImc = imc || (peso / Math.pow(altura / 100, 2)).toFixed(2);
+  const calculatedImc = imc || parseFloat((peso / Math.pow(altura / 100, 2)).toFixed(2));
 
   const composicion = new ComposicionCorporal({
     numeroIdentificacion,
@@ -79,7 +79,7 @@ exports.crearComposicionCorporal = asyncHandler(async (req, res) => {
     notas: notas || "",
     medidas: medidas || {},
     objetivo: objetivo || "",
-    creadoPor: req.user._id,
+    creadoPor: req.user ? req.user._id : null,
   });
 
   const nuevaComposicion = await composicion.save();
@@ -150,8 +150,8 @@ exports.actualizarComposicionCorporal = asyncHandler(async (req, res) => {
   }
 
   if (
-    req.user.rol !== "admin" &&
-    composicion.creadoPor.toString() !== req.user._id.toString()
+    req.user?.rol !== "admin" &&
+    composicion.creadoPor.toString() !== req.user?._id.toString()
   ) {
     return res.status(403).json({
       success: false,
@@ -210,7 +210,7 @@ exports.actualizarComposicionCorporal = asyncHandler(async (req, res) => {
 
   const calculatedImc =
     imc || (peso && altura)
-      ? (peso / Math.pow(altura / 100, 2)).toFixed(2)
+      ? parseFloat((peso / Math.pow(altura / 100, 2)).toFixed(2))
       : composicion.imc;
 
   composicion.numeroIdentificacion =
@@ -235,4 +235,64 @@ exports.actualizarComposicionCorporal = asyncHandler(async (req, res) => {
 });
 
 // @desc    Eliminar una composición corporal
-// @route   DELETE /api/composi
+// @route   DELETE /api/composicion-corporal/:id
+// @access  Private (Admin)
+exports.eliminarComposicionCorporal = asyncHandler(async (req, res) => {
+  const composicion = await ComposicionCorporal.findById(req.params.id);
+  if (!composicion) {
+    return res.status(404).json({
+      success: false,
+      message: "Composición no encontrada",
+    });
+  }
+
+  await composicion.deleteOne();
+  res.json({
+    success: true,
+    message: "Composición corporal eliminada con éxito",
+  });
+});
+
+// @desc    Consultar composiciones corporales por número de identificación
+// @route   GET /api/composicion-corporal/cliente/:identificacion
+// @access  Public
+exports.consultarComposicionesPorCliente = asyncHandler(async (req, res) => {
+  const { identificacion } = req.params;
+
+  if (!identificacion || !identificacion.toString().trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Número de identificación inválido",
+    });
+  }
+
+  const cliente = await Cliente.findOne({
+    numeroIdentificacion: identificacion,
+  });
+  if (!cliente) {
+    return res.status(404).json({
+      success: false,
+      message:
+        "Cliente no encontrado para el número de identificación proporcionado",
+    });
+  }
+
+  const composiciones = await ComposicionCorporal.find({
+    numeroIdentificacion: identificacion,
+  })
+    .populate("creadoPor", "nombre email")
+    .sort({ fecha: -1 })
+    .lean();
+
+  if (!composiciones || composiciones.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: "No se encontraron registros para esta identificación.",
+    });
+  }
+
+  res.json({
+    success: true,
+    data: composiciones,
+  });
+});
