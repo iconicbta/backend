@@ -41,9 +41,7 @@ app.use(express.json());
 // 🔹 Middleware de log de solicitudes
 // ================================
 app.use((req, res, next) => {
-  console.log(
-    `📩 ${req.method} ${req.url} - ${new Date().toISOString()}`
-  );
+  console.log(`📩 ${req.method} ${req.url} - ${new Date().toISOString()}`);
   next();
 });
 
@@ -61,28 +59,28 @@ connectDB()
 // ================================
 // 🔹 Importar Rutas
 // ================================
-const clienteRoutes = require("./routes/clienteRoutes");
-const membresiaRoutes = require("./routes/membresiaRoutes");
-const entrenadorRoutes = require("./routes/entrenadorRoutes");
-const productRoutes = require("./routes/productRoutes");
-const pagoRoutes = require("./routes/pagoRoutes");
-const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes");
-const claseRoutes = require("./routes/claseRoutes");
-const contabilidadRoutes = require("./routes/contabilidad");
-const indicadorRoutes = require("./routes/indicadorRoutes");
-const asistenciaRoutes = require("./routes/asistenciaRoutes");
-const rutinaRoutes = require("./routes/rutinas");
-const composicionCorporalRoutes = require("./routes/composicionCorporal");
-const medicionPorristasRoutes = require("./routes/medicionPorristas");
-const especialidadesRoutes = require("./routes/especialidades"); // ✅ NUEVO
+const clienteRoutes           = require("./routes/clienteRoutes");
+const membresiaRoutes         = require("./routes/membresiaRoutes");
+const entrenadorRoutes         = require("./routes/entrenadorRoutes");
+const productRoutes            = require("./routes/productRoutes");
+const pagoRoutes               = require("./routes/pagoRoutes");
+const authRoutes               = require("./routes/authRoutes");
+const userRoutes               = require("./routes/userRoutes");
+const claseRoutes              = require("./routes/claseRoutes");
+const contabilidadRoutes       = require("./routes/contabilidad");
+const indicadorRoutes          = require("./routes/indicadorRoutes");
+const asistenciaRoutes         = require("./routes/asistenciaRoutes");
+const rutinaRoutes             = require("./routes/rutinas");
+const composicionCorporalRoutes= require("./routes/composicioncorporal");
+const medicionPorristasRoutes  = require("./routes/medicionporristas");
+const especialidadesRoutes     = require("./routes/especialidades");
 
 // ================================
 // 🔹 Registrar Rutas
 // ================================
 // Públicas
 app.use("/api/auth", authRoutes);
-app.use("/api/especialidades", especialidadesRoutes); // ✅ Pública para que frontend pueda consultar equipos
+app.use("/api/especialidades", especialidadesRoutes); // pública para que frontend pueda consultar equipos
 
 // Privadas (requieren login con token)
 app.use("/api/clientes", protect, clienteRoutes);
