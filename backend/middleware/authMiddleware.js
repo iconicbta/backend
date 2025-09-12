@@ -4,6 +4,11 @@ const User = require("../models/User"); // Cambiado de Usuario a User
 
 // Middleware para verificar el token y autenticar al usuario
 const protect = asyncHandler(async (req, res, next) => {
+  // ✅ Permitir que las peticiones preflight (OPTIONS) pasen sin validar token
+  if (req.method === "OPTIONS") {
+    return next();
+  }
+
   let token;
   if (
     req.headers.authorization &&
@@ -12,18 +17,22 @@ const protect = asyncHandler(async (req, res, next) => {
     try {
       token = req.headers.authorization.split(" ")[1];
       console.log("Token recibido:", token);
+
       if (!process.env.JWT_SECRET) {
         throw new Error("Clave secreta JWT no definida en .env");
       }
+
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log("Token decodificado:", decoded);
-      req.user = await User.findById(decoded.id).select("-password"); // Cambiado a User
+
+      req.user = await User.findById(decoded.id).select("-password");
       if (!req.user) {
         console.log("Usuario no encontrado para el ID:", decoded.id);
         return res
           .status(401)
           .json({ message: "No autorizado, usuario no encontrado" });
       }
+
       console.log("Usuario encontrado - Rol:", req.user.rol);
       next();
     } catch (error) {
@@ -45,7 +54,9 @@ const protect = asyncHandler(async (req, res, next) => {
 const verificarPermisos = (rolesPermitidos) => {
   return (req, res, next) => {
     if (!req.user || !rolesPermitidos.includes(req.user.rol)) {
-      return res.status(403).json({ message: "No tienes permisos para esta acción" });
+      return res
+        .status(403)
+        .json({ message: "No tienes permisos para esta acción" });
     }
     next();
   };
