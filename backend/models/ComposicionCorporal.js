@@ -20,9 +20,11 @@ const composicionCorporalSchema = new mongoose.Schema(
       piernaIzquierda: { type: Number, default: 0 },
     },
     objetivo: { type: String, default: "" },
+
+    // ✅ Ajustado: el modelo de referencia es "User"
     creadoPor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Usuario",
+      ref: "User",
       required: true,
     },
   },
