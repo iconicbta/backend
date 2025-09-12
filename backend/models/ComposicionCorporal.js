@@ -2,14 +2,41 @@ const mongoose = require("mongoose");
 
 const composicionCorporalSchema = new mongoose.Schema(
   {
-    numeroIdentificacion: { type: String, required: true, index: true },
-    fecha: { type: Date, required: true },
-    peso: { type: Number, required: true },
-    altura: { type: Number, required: true },
-    imc: { type: Number },
-    porcentajeGrasa: { type: Number, default: 0 },
-    porcentajeMusculo: { type: Number, default: 0 },
-    notas: { type: String, default: "" },
+    numeroIdentificacion: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+    },
+    fecha: {
+      type: Date,
+      required: true,
+    },
+    peso: {
+      type: Number,
+      required: true,
+    },
+    altura: {
+      type: Number,
+      required: true,
+    },
+    imc: {
+      type: Number,
+      default: 0,
+    },
+    porcentajeGrasa: {
+      type: Number,
+      default: 0,
+    },
+    porcentajeMusculo: {
+      type: Number,
+      default: 0,
+    },
+    notas: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     medidas: {
       brazoDerecho: { type: Number, default: 0 },
       brazoIzquierdo: { type: Number, default: 0 },
@@ -19,21 +46,22 @@ const composicionCorporalSchema = new mongoose.Schema(
       piernaDerecha: { type: Number, default: 0 },
       piernaIzquierda: { type: Number, default: 0 },
     },
-    objetivo: { type: String, default: "" },
-
-    // ✅ Ajustado: el modelo de referencia es "User"
+    objetivo: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    // ✅ Asegúrese de que el nombre del modelo coincida exactamente con User.js
     creadoPor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "User", // IMPORTANTE: debe coincidir con mongoose.model("User", …)
       required: true,
     },
   },
   {
     timestamps: true,
+    collection: "composiciones_corporales", // 🔹 nombre fijo de la colección
   }
 );
 
-module.exports = mongoose.model(
-  "ComposicionCorporal",
-  composicionCorporalSchema
-);
+module.exports = mongoose.model("ComposicionCorporal", composicionCorporalSchema);
