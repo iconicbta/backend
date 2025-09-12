@@ -1,6 +1,6 @@
 const ComposicionCorporal = require("../models/ComposicionCorporal");
 const Cliente = require("../models/Cliente");
-const Usuario = require("../models/User");
+const User = require("../models/User");
 const asyncHandler = require("express-async-handler");
 
 // @desc    Crear una nueva composición corporal
@@ -20,9 +20,6 @@ exports.crearComposicionCorporal = asyncHandler(async (req, res) => {
     medidas,
     objetivo,
   } = req.body;
-
-  console.log("Datos recibidos para crear composición:", req.body);
-  console.log("Usuario autenticado:", req.user);
 
   if (!numeroIdentificacion || !fecha || !peso || !altura) {
     return res.status(400).json({
@@ -86,7 +83,6 @@ exports.crearComposicionCorporal = asyncHandler(async (req, res) => {
   });
 
   const nuevaComposicion = await composicion.save();
-  console.log("Composición corporal guardada:", nuevaComposicion);
   res.status(201).json({
     success: true,
     message: "Composición corporal creada con éxito",
@@ -98,11 +94,9 @@ exports.crearComposicionCorporal = asyncHandler(async (req, res) => {
 // @route   GET /api/composicion-corporal
 // @access  Private (Admin)
 exports.obtenerComposicionesCorporales = asyncHandler(async (req, res) => {
-  console.log("Iniciando obtenerComposicionesCorporales...");
   const composiciones = await ComposicionCorporal.find()
-    .populate("creadoPor", "nombre apellido")
+    .populate("creadoPor", "nombre email") // ✅ Usar campos que sí existan
     .lean();
-  console.log("Composiciones corporales obtenidas:", composiciones);
   res.json({
     success: true,
     data: composiciones,
@@ -113,9 +107,8 @@ exports.obtenerComposicionesCorporales = asyncHandler(async (req, res) => {
 // @route   GET /api/composicion-corporal/:id
 // @access  Private (Admin)
 exports.obtenerComposicionCorporal = asyncHandler(async (req, res) => {
-  console.log("Iniciando obtenerComposicionCorporal...");
   const composicion = await ComposicionCorporal.findById(req.params.id)
-    .populate("creadoPor", "nombre apellido")
+    .populate("creadoPor", "nombre email")
     .lean();
 
   if (!composicion) {
@@ -135,7 +128,6 @@ exports.obtenerComposicionCorporal = asyncHandler(async (req, res) => {
 // @route   PUT /api/composicion-corporal/:id
 // @access  Private (Admin o Entrenador que la creó)
 exports.actualizarComposicionCorporal = asyncHandler(async (req, res) => {
-  console.log("Iniciando actualizarComposicionCorporal...");
   const {
     numeroIdentificacion,
     fecha,
@@ -150,7 +142,6 @@ exports.actualizarComposicionCorporal = asyncHandler(async (req, res) => {
   } = req.body;
 
   const composicion = await ComposicionCorporal.findById(req.params.id);
-
   if (!composicion) {
     return res.status(404).json({
       success: false,
@@ -236,7 +227,6 @@ exports.actualizarComposicionCorporal = asyncHandler(async (req, res) => {
   composicion.objetivo = objetivo || composicion.objetivo;
 
   const composicionActualizada = await composicion.save();
-  console.log("Composición corporal actualizada:", composicionActualizada);
   res.json({
     success: true,
     message: "Composición corporal actualizada con éxito",
@@ -248,7 +238,6 @@ exports.actualizarComposicionCorporal = asyncHandler(async (req, res) => {
 // @route   DELETE /api/composicion-corporal/:id
 // @access  Private (Admin)
 exports.eliminarComposicionCorporal = asyncHandler(async (req, res) => {
-  console.log("Iniciando eliminarComposicionCorporal...");
   const composicion = await ComposicionCorporal.findById(req.params.id);
 
   if (!composicion) {
@@ -272,13 +261,11 @@ exports.eliminarComposicionCorporal = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Consultar composiciones corporales por número de identificación del cliente
+// @desc    Consultar composiciones corporales por número de identificación
 // @route   GET /api/composicion-corporal/cliente/:identificacion
-// @access  Public (sin permisos)
+// @access  Public
 exports.consultarComposicionesPorCliente = asyncHandler(async (req, res) => {
-  console.log("Iniciando consultarComposicionesPorCliente...");
   const { identificacion } = req.params;
-  console.log("Consultando composiciones para identificacion:", identificacion);
 
   if (!identificacion || isNaN(identificacion)) {
     return res.status(400).json({
@@ -291,7 +278,6 @@ exports.consultarComposicionesPorCliente = asyncHandler(async (req, res) => {
     numeroIdentificacion: identificacion,
   });
   if (!cliente) {
-    console.log("Cliente no encontrado para identificacion:", identificacion);
     return res.status(404).json({
       success: false,
       message:
@@ -302,10 +288,8 @@ exports.consultarComposicionesPorCliente = asyncHandler(async (req, res) => {
   const composiciones = await ComposicionCorporal.find({
     numeroIdentificacion: identificacion,
   })
-    .populate("creadoPor", "nombre apellido")
+    .populate("creadoPor", "nombre email")
     .lean();
-
-  console.log("Composiciones encontradas:", composiciones);
 
   if (!composiciones || composiciones.length === 0) {
     return res.status(404).json({
@@ -319,4 +303,3 @@ exports.consultarComposicionesPorCliente = asyncHandler(async (req, res) => {
     data: composiciones,
   });
 });
-
