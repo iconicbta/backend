@@ -2,34 +2,48 @@ const mongoose = require("mongoose");
 
 const composicionCorporalSchema = new mongoose.Schema(
   {
-    identificacion: {
+    numeroIdentificacion: {
       type: String,
+      required: true,
+    },
+    fecha: {
+      type: Date,
       required: true,
     },
     peso: {
       type: Number,
       required: true,
     },
-    grasaCorporal: {
+    altura: {
       type: Number,
       required: true,
     },
-    masaMuscular: {
-      type: Number,
-      required: true,
-    },
-    aguaCorporal: {
+    imc: {
       type: Number,
     },
-    hueso: {
+    porcentajeGrasa: {
       type: Number,
+      default: 0,
     },
-    metabolismoBasal: {
+    porcentajeMusculo: {
       type: Number,
+      default: 0,
     },
-    fecha: {
-      type: Date,
-      default: Date.now,
+    notas: {
+      type: String,
+      default: "",
+    },
+    medidas: {
+      type: Object,
+      default: {},
+    },
+    objetivo: {
+      type: String,
+      default: "",
+    },
+    creadoPor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
   },
   {
