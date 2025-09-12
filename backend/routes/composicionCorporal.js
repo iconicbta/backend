@@ -10,22 +10,11 @@ const {
 } = require("../controllers/composicionCorporalController");
 const { protect, verificarPermisos } = require("../middleware/authMiddleware");
 
-// Verificar que las funciones del controlador estén definidas
-const controllers = {
-  crearComposicionCorporal,
-  obtenerComposicionesCorporales,
-  obtenerComposicionCorporal,
-  actualizarComposicionCorporal,
-  eliminarComposicionCorporal,
-  consultarComposicionesPorCliente,
-};
-for (const [name, fn] of Object.entries(controllers)) {
-  if (!fn || typeof fn !== "function") {
-    throw new Error(`${name} no está definido o no es una función`);
-  }
-}
+// ✅ Ruta pública para consultar composiciones por número de identificación
+//    SE COLOCA PRIMERO para evitar conflicto con la ruta '/:id'
+router.get("/cliente/:identificacion", consultarComposicionesPorCliente);
 
-// Ruta para registrar composición corporal (solo para admin/entrenador)
+// Resto de rutas privadas
 router.post(
   "/",
   protect,
@@ -33,7 +22,6 @@ router.post(
   crearComposicionCorporal
 );
 
-// Ruta para obtener todas las composiciones corporales (solo admin)
 router.get(
   "/",
   protect,
@@ -41,7 +29,6 @@ router.get(
   obtenerComposicionesCorporales
 );
 
-// Ruta para obtener una composición corporal por ID (solo admin)
 router.get(
   "/:id",
   protect,
@@ -49,7 +36,6 @@ router.get(
   obtenerComposicionCorporal
 );
 
-// Ruta para actualizar composición corporal (admin o entrenador que la creó)
 router.put(
   "/:id",
   protect,
@@ -57,7 +43,6 @@ router.put(
   actualizarComposicionCorporal
 );
 
-// Ruta para eliminar composición corporal (solo admin)
 router.delete(
   "/:id",
   protect,
@@ -65,8 +50,4 @@ router.delete(
   eliminarComposicionCorporal
 );
 
-// Ruta para consultar composiciones corporales por cliente (pública)
-router.get("/cliente/:identificacion", consultarComposicionesPorCliente);
-
 module.exports = router;
-
