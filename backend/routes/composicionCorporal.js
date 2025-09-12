@@ -6,12 +6,12 @@ const {
   obtenerComposicionCorporal,
   actualizarComposicionCorporal,
   eliminarComposicionCorporal,
-  consultarComposicionesPorCliente, // ✅ función ahora existe en el controlador
+  consultarComposicionesPorCliente,
 } = require("../controllers/composicionCorporalController");
 const { protect, verificarPermisos } = require("../middleware/authMiddleware");
 
-// ✅ Ruta pública para consultar composiciones por número de identificación
-//    Debe ir primero para que no choque con la ruta '/:id'
+// Ruta pública para consultar composiciones por número de identificación
+// Debe ir primero para evitar conflicto con la ruta '/:id'
 router.get("/cliente/:identificacion", consultarComposicionesPorCliente);
 
 // Rutas privadas
