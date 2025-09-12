@@ -59,21 +59,21 @@ connectDB()
 // ================================
 // 🔹 Importar Rutas
 // ================================
-const clienteRoutes           = require("./routes/clienteRoutes");
-const membresiaRoutes         = require("./routes/membresiaRoutes");
-const entrenadorRoutes        = require("./routes/entrenadorRoutes");
-const productRoutes           = require("./routes/productRoutes");
-const pagoRoutes              = require("./routes/pagoRoutes");
-const authRoutes              = require("./routes/authRoutes");
-const userRoutes              = require("./routes/userRoutes");
-const claseRoutes             = require("./routes/claseRoutes");
-const contabilidadRoutes      = require("./routes/contabilidad");
-const indicadorRoutes         = require("./routes/indicadorRoutes");
-const asistenciaRoutes        = require("./routes/asistenciaRoutes");
-const rutinaRoutes            = require("./routes/rutinas");
-const composicionCorporalRoutes = require("./routes/composicionCorporal");
-const medicionPorristasRoutes = require("./routes/medicionporristas");
-const especialidadesRoutes    = require("./routes/especialidades");
+const clienteRoutes            = require("./routes/clienteRoutes");
+const membresiaRoutes          = require("./routes/membresiaRoutes");
+const entrenadorRoutes         = require("./routes/entrenadorRoutes");
+const productRoutes            = require("./routes/productRoutes");
+const pagoRoutes               = require("./routes/pagoRoutes");
+const authRoutes               = require("./routes/authRoutes");
+const userRoutes               = require("./routes/userRoutes");
+const claseRoutes              = require("./routes/claseRoutes");
+const contabilidadRoutes       = require("./routes/contabilidad");
+const indicadorRoutes          = require("./routes/indicadorRoutes");
+const asistenciaRoutes         = require("./routes/asistenciaRoutes");
+const rutinaRoutes             = require("./routes/rutinas");
+const composicionCorporalRoutes= require("./routes/composicionCorporal");
+const medicionPorristasRoutes  = require("./routes/medicionPorristas"); // 👈 corregido
+const especialidadesRoutes     = require("./routes/especialidades");
 
 // ================================
 // 🔹 Registrar Rutas
@@ -81,7 +81,7 @@ const especialidadesRoutes    = require("./routes/especialidades");
 // Públicas
 app.use("/api/auth", authRoutes);
 app.use("/api/especialidades", especialidadesRoutes); 
-app.use("/api/composicion-corporal", composicionCorporalRoutes); // ✅ pública según tu router
+app.use("/api/composicion-corporal", composicionCorporalRoutes); 
 
 // Privadas (requieren login con token)
 app.use("/api/clientes", protect, clienteRoutes);
