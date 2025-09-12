@@ -61,26 +61,27 @@ connectDB()
 // ================================
 const clienteRoutes           = require("./routes/clienteRoutes");
 const membresiaRoutes         = require("./routes/membresiaRoutes");
-const entrenadorRoutes         = require("./routes/entrenadorRoutes");
-const productRoutes            = require("./routes/productRoutes");
-const pagoRoutes               = require("./routes/pagoRoutes");
-const authRoutes               = require("./routes/authRoutes");
-const userRoutes               = require("./routes/userRoutes");
-const claseRoutes              = require("./routes/claseRoutes");
-const contabilidadRoutes       = require("./routes/contabilidad");
-const indicadorRoutes          = require("./routes/indicadorRoutes");
-const asistenciaRoutes         = require("./routes/asistenciaRoutes");
-const rutinaRoutes             = require("./routes/rutinas");
-const composicionCorporalRoutes= require("./routes/composicioncorporal");
-const medicionPorristasRoutes  = require("./routes/medicionporristas");
-const especialidadesRoutes     = require("./routes/especialidades");
+const entrenadorRoutes        = require("./routes/entrenadorRoutes");
+const productRoutes           = require("./routes/productRoutes");
+const pagoRoutes              = require("./routes/pagoRoutes");
+const authRoutes              = require("./routes/authRoutes");
+const userRoutes              = require("./routes/userRoutes");
+const claseRoutes             = require("./routes/claseRoutes");
+const contabilidadRoutes      = require("./routes/contabilidad");
+const indicadorRoutes         = require("./routes/indicadorRoutes");
+const asistenciaRoutes        = require("./routes/asistenciaRoutes");
+const rutinaRoutes            = require("./routes/rutinas");
+const composicionCorporalRoutes = require("./routes/composicionCorporal");
+const medicionPorristasRoutes = require("./routes/medicionporristas");
+const especialidadesRoutes    = require("./routes/especialidades");
 
 // ================================
 // 🔹 Registrar Rutas
 // ================================
 // Públicas
 app.use("/api/auth", authRoutes);
-app.use("/api/especialidades", especialidadesRoutes); // pública para que frontend pueda consultar equipos
+app.use("/api/especialidades", especialidadesRoutes); 
+app.use("/api/composicion-corporal", composicionCorporalRoutes); // ✅ pública según tu router
 
 // Privadas (requieren login con token)
 app.use("/api/clientes", protect, clienteRoutes);
@@ -94,7 +95,6 @@ app.use("/api/contabilidad", protect, contabilidadRoutes);
 app.use("/api/indicadores", protect, indicadorRoutes);
 app.use("/api/asistencias", protect, asistenciaRoutes);
 app.use("/api/rutinas", protect, rutinaRoutes);
-app.use("/api/composicion-corporal", protect, composicionCorporalRoutes);
 app.use("/api/medicion-porristas", protect, medicionPorristasRoutes);
 
 // ================================
@@ -127,7 +127,7 @@ app.use((err, req, res, next) => {
 // ================================
 // 🔹 Iniciar servidor
 // ================================
-const PORT = process.env.PORT || 10000; // Render asigna puerto dinámico
+const PORT = process.env.PORT || 10000; 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
 });
