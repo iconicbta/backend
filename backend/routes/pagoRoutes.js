@@ -53,6 +53,104 @@ router.get(
   }
 );
 
+/**
+ * 📊 NUEVA RUTA: Resumen por método de pago
+ *
+ * Opciones de filtrado:
+ * - Puede recibir fechaInicio & fechaFin (ISO strings) para un rango arbitrario.
+ * - O puede recibir rango = 'dia'|'semana'|'mes' (se calcula con base en hoy).
+ *
+ * Responde:
+ * {
+ *   resumen: [{ metodoPago: "Efectivo", total: 300000 }, ...],
+ *   totalGeneral: 650000
+ * }
+ */
+router.get(
+  "/resumen-metodo-pago",
+  protect,
+  verificarPermisos(["admin", "recepcionista", "user"]),
+  async (req, res) => {
+    try {
+      console.log("Solicitud GET recibida en /api/pagos/resumen-metodo-pago", req.query);
+
+      const { fechaInicio, fechaFin, rango } = req.query; // rango opcional: 'dia'|'semana'|'mes'
+      const query = { estado: "Completado" };
+
+      // Si vienen fechaInicio y fechaFin, usar esos (permite filtros desde frontend)
+      if (fechaInicio && fechaFin) {
+        const inicio = new Date(fechaInicio);
+        const fin = new Date(fechaFin);
+        if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
+          return res.status(400).json({ mensaje: "Fechas inválidas" });
+        }
+        fin.setHours(23, 59, 59, 999);
+        query.fecha = { $gte: inicio, $lte: fin };
+      } else if (rango) {
+        // Si viene 'rango', calcular fechas con base en hoy
+        const hoy = new Date();
+        let inicio;
+        if (rango === "dia") {
+          inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+        } else if (rango === "semana") {
+          // Primer día de la semana (lunes). Ajusta si prefieres domingo.
+          const day = hoy.getDay(); // 0 (domingo) .. 6 (sábado)
+          // Calcular lunes: restar (day === 0 ? 6 : day - 1)
+          const diffToMonday = day === 0 ? 6 : day - 1;
+          inicio = new Date(hoy);
+          inicio.setDate(hoy.getDate() - diffToMonday);
+          inicio.setHours(0, 0, 0, 0);
+        } else if (rango === "mes") {
+          inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        } else {
+          return res.status(400).json({ mensaje: "Valor de 'rango' inválido" });
+        }
+        const fin = new Date(); // hasta ahora
+        fin.setHours(23, 59, 59, 999);
+        query.fecha = { $gte: inicio, $lte: fin };
+      }
+
+      // Buscar pagos ya filtrados por fecha (si aplica)
+      const pagos = await Pago.find(query).lean();
+
+      // Inicializar totales esperados (asegura orden / métodos comunes)
+      const resumenMap = {
+        Efectivo: 0,
+        Transferencia: 0,
+        Tarjeta: 0,
+      };
+
+      // Sumar montos según metodoPago (si hay otros métodos, se agrupan también)
+      pagos.forEach((p) => {
+        const metodo = p.metodoPago || "Sin especificar";
+        const monto = Number(p.monto || 0);
+        if (resumenMap.hasOwnProperty(metodo)) {
+          resumenMap[metodo] += monto;
+        } else {
+          // crear clave dinámica para métodos no esperados
+          resumenMap[metodo] = (resumenMap[metodo] || 0) + monto;
+        }
+      });
+
+      // Formatear respuesta como array y total general
+      const resumen = Object.keys(resumenMap).map((metodo) => ({
+        metodoPago: metodo,
+        total: resumenMap[metodo],
+      }));
+
+      const totalGeneral = pagos.reduce((sum, pago) => sum + (pago.monto || 0), 0);
+
+      res.json({ resumen, totalGeneral });
+    } catch (error) {
+      console.error("Error en /api/pagos/resumen-metodo-pago:", error.stack);
+      res.status(500).json({
+        mensaje: "Error al generar el resumen por método de pago",
+        detalle: error.message || "Error desconocido",
+      });
+    }
+  }
+);
+
 // Obtener pago por ID
 router.get(
   "/:id",
