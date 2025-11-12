@@ -6,10 +6,8 @@ console.log("Variables de entorno cargadas:", {
 });
 
 const express = require("express");
-const cors = require("cors");
 const { connectDB } = require("./config/db");
 const { protect } = require("./middleware/authMiddleware");
-const path = require("path");
 
 const app = express();
 
@@ -21,7 +19,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 /* ======================================================
-   🔹 CORS
+   🔹 CORS - versión robusta para Render/Vercel
 ====================================================== */
 const allowedOrigins = [
   "https://frontendiconic.vercel.app",
@@ -30,24 +28,26 @@ const allowedOrigins = [
   "http://127.0.0.1:3000",
 ];
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    console.log(`🔍 Origen recibido en CORS: ${origin}`);
-    if (!origin) return callback(null, true);
-    const isAllowed = allowedOrigins.some((pattern) =>
-      typeof pattern === "string" ? pattern === origin : pattern.test(origin)
-    );
-    if (isAllowed) callback(null, true);
-    else callback(new Error("No permitido por CORS"));
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-  optionsSuccessStatus: 200,
-};
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const isAllowed = allowedOrigins.some((pattern) =>
+    typeof pattern === "string" ? pattern === origin : pattern.test(origin)
+  );
 
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+  if (isAllowed) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.header("Access-Control-Allow-Credentials", "true");
+  }
+
+  // 👉 respuesta inmediata al preflight
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
 
 /* ======================================================
    🔹 Logger básico
@@ -86,14 +86,11 @@ const rutinaRoutes = require("./routes/rutinas");
 const composicionCorporalRoutes = require("./routes/composicionCorporal");
 const medicionPorristasRoutes = require("./routes/medicionPorristas");
 const especialidadesRoutes = require("./routes/especialidades");
-
-// ✅ Nueva ruta: Pagos de Ligas
 const pagosLigasRoutes = require("./routes/pagosLigasRoutes");
 
 /* ======================================================
    🔹 Registrar rutas
 ====================================================== */
-
 // PÚBLICAS
 app.use("/api/auth", authRoutes);
 app.use("/api/especialidades", especialidadesRoutes);
@@ -113,9 +110,9 @@ app.use("/api/asistencias", protect, asistenciaRoutes);
 app.use("/api/rutinas", protect, rutinaRoutes);
 app.use("/api/medicion-porristas", protect, medicionPorristasRoutes);
 
-// 🔸 Durante pruebas (sin token)
+// 🔸 Sin protección mientras se prueba
 app.use("/api/pagos-ligas", pagosLigasRoutes);
-// 🔸 Cuando todo funcione bien, cambia por:
+// Cuando funcione bien, cambia a:
 // app.use("/api/pagos-ligas", protect, pagosLigasRoutes);
 
 /* ======================================================
@@ -159,5 +156,7 @@ app.use((err, req, res, next) => {
 ====================================================== */
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en puerto ${PORT} - ENV: ${process.env.NODE_ENV || "undefined"}`);
+  console.log(
+    `🚀 Servidor corriendo en puerto ${PORT} - ENV: ${process.env.NODE_ENV || "undefined"}`
+  );
 });
