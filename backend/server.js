@@ -12,14 +12,7 @@ const { protect } = require("./middleware/authMiddleware");
 const app = express();
 
 /* ======================================================
-   ✅ Seguridad básica y límites
-====================================================== */
-app.set("trust proxy", true);
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-/* ======================================================
-   🔹 CORS - versión robusta para Render/Vercel
+   🔹 CORS - versión sólida para producción (Vercel/Render)
 ====================================================== */
 const allowedOrigins = [
   "https://frontendiconic.vercel.app",
@@ -34,25 +27,36 @@ app.use((req, res, next) => {
     typeof pattern === "string" ? pattern === origin : pattern.test(origin)
   );
 
+  // 🔹 Siempre devolver cabeceras CORS
+  res.header("Vary", "Origin");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With"
+  );
+
   if (isAllowed) {
     res.header("Access-Control-Allow-Origin", origin);
-    res.header("Vary", "Origin");
-    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, X-Requested-With"
-    );
     res.header("Access-Control-Allow-Credentials", "true");
+  } else {
+    res.header("Access-Control-Allow-Origin", "*");
   }
 
-  // ✅ Responder inmediatamente a preflight requests
+  // ✅ Responder preflight inmediatamente
   if (req.method === "OPTIONS") {
-    console.log("✅ Preflight OK desde:", origin);
+    console.log("✅ Preflight recibido desde:", origin);
     return res.sendStatus(200);
   }
 
   next();
 });
+
+/* ======================================================
+   ✅ Seguridad básica y límites
+====================================================== */
+app.set("trust proxy", true);
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 /* ======================================================
    🔹 Logger básico
