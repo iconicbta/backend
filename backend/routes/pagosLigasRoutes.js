@@ -1,9 +1,8 @@
-// routes/pagosLigasRoutes.js
-import express from "express";
-import PagoLigaMes from "../models/PagoLigaMes.js";
-import ConfiguracionPagoLiga from "../models/ConfiguracionPagoLiga.js";
-
+// backend/routes/pagosLigasRoutes.js
+const express = require("express");
 const router = express.Router();
+const PagoLigaMes = require("../models/PagoLigaMes");
+const ConfiguracionPagoLiga = require("../models/ConfiguracionPagoLiga");
 
 /* ===========================
    🔹 Configuración Global
@@ -18,6 +17,7 @@ router.get("/configuracion", async (req, res) => {
     }
     res.json(config);
   } catch (error) {
+    console.error("Error al obtener configuración:", error);
     res.status(500).json({ message: "Error al obtener configuración", error });
   }
 });
@@ -36,6 +36,7 @@ router.put("/configuracion", async (req, res) => {
     }
     res.json({ message: "Configuración actualizada", config });
   } catch (error) {
+    console.error("Error al actualizar configuración:", error);
     res.status(500).json({ message: "Error al actualizar configuración", error });
   }
 });
@@ -64,6 +65,7 @@ router.post("/", async (req, res) => {
 
     res.json({ message: "Pago de liga registrado", pago });
   } catch (error) {
+    console.error("Error al registrar pago:", error);
     res.status(500).json({ message: "Error al registrar pago", error });
   }
 });
@@ -74,6 +76,7 @@ router.get("/", async (req, res) => {
     const pagos = await PagoLigaMes.find().sort({ createdAt: -1 });
     res.json(pagos);
   } catch (error) {
+    console.error("Error al obtener pagos:", error);
     res.status(500).json({ message: "Error al obtener pagos", error });
   }
 });
@@ -84,8 +87,9 @@ router.delete("/:id", async (req, res) => {
     await PagoLigaMes.findByIdAndDelete(req.params.id);
     res.json({ message: "Pago eliminado correctamente" });
   } catch (error) {
+    console.error("Error al eliminar pago:", error);
     res.status(500).json({ message: "Error al eliminar pago", error });
   }
 });
 
-export default router;
+module.exports = router;
