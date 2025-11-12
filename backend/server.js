@@ -36,13 +36,18 @@ app.use((req, res, next) => {
 
   if (isAllowed) {
     res.header("Access-Control-Allow-Origin", origin);
+    res.header("Vary", "Origin");
     res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Requested-With"
+    );
     res.header("Access-Control-Allow-Credentials", "true");
   }
 
-  // 👉 respuesta inmediata al preflight
+  // ✅ Responder inmediatamente a preflight requests
   if (req.method === "OPTIONS") {
+    console.log("✅ Preflight OK desde:", origin);
     return res.sendStatus(200);
   }
 
@@ -110,7 +115,7 @@ app.use("/api/asistencias", protect, asistenciaRoutes);
 app.use("/api/rutinas", protect, rutinaRoutes);
 app.use("/api/medicion-porristas", protect, medicionPorristasRoutes);
 
-// 🔸 Sin protección mientras se prueba
+// 🔸 Temporalmente sin protección mientras pruebas pagos de ligas
 app.use("/api/pagos-ligas", pagosLigasRoutes);
 // Cuando funcione bien, cambia a:
 // app.use("/api/pagos-ligas", protect, pagosLigasRoutes);
