@@ -17,24 +17,23 @@ const app = express();
 // ✅ Ajustes de seguridad / cabeceras mínimas y límites
 // ================================
 app.set("trust proxy", true); // si usas proxies (vercel, etc)
-app.use(express.json({ limit: "10mb" })); // aceptar bodies más grandes si se requiere
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // ================================
-// 🔹 Configuración de CORS (flexible pero controlada)
+// 🔹 Configuración de CORS
 // ================================
 const allowedOrigins = [
   "https://frontendiconic.vercel.app",
-  /^https:\/\/frontendiconic.*\.vercel\.app$/, // subdominios preview en Vercel
+  /^https:\/\/frontendiconic.*\.vercel\.app$/, // subdominios preview de vercel
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // origin puede ser undefined en requests server-to-server o herramientas como Postman
     console.log(`🔍 Origen recibido en CORS: ${origin}`);
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // permite requests internas
     const isAllowed = allowedOrigins.some((pattern) =>
       typeof pattern === "string" ? pattern === origin : pattern.test(origin)
     );
@@ -51,7 +50,7 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 // ================================
-// 🔹 Middleware de log de solicitudes (simple)
+// 🔹 Middleware de log
 // ================================
 app.use((req, res, next) => {
   console.log(`📩 ${req.method} ${req.url} - ${new Date().toISOString()}`);
@@ -59,7 +58,7 @@ app.use((req, res, next) => {
 });
 
 // ================================
-// 🔹 Conectar a MongoDB (iniciar antes de levantar rutas importantes)
+// 🔹 Conectar MongoDB
 // ================================
 console.log("Iniciando conexión a MongoDB...");
 connectDB()
@@ -70,9 +69,8 @@ connectDB()
   });
 
 // ================================
-// 🔹 Importar Rutas (require de forma sincronizada)
+// 🔹 Importar Rutas
 // ================================
-// Si alguno de estos archivos no existe en tu repo, ajusta el require al nombre correcto.
 const clienteRoutes = require("./routes/clienteRoutes");
 const membresiaRoutes = require("./routes/membresiaRoutes");
 const entrenadorRoutes = require("./routes/entrenadorRoutes");
@@ -89,25 +87,25 @@ const composicionCorporalRoutes = require("./routes/composicionCorporal");
 const medicionPorristasRoutes = require("./routes/medicionPorristas");
 const especialidadesRoutes = require("./routes/especialidades");
 
-// Si añadiste la nueva ruta pagos-ligas según lo conversado, descomenta / ajusta la siguiente línea:
-// const pagosLigasRoutes = require("./routes/pagosLigasRoutes");
+// ✅ Nueva ruta de Pagos de Ligas
+const pagosLigasRoutes = require("./routes/pagosLigasRoutes");
 
 // ================================
 // 🔹 Registrar Rutas
 // ================================
-// PÚBLICAS (sin protect)
+
+// PÚBLICAS
 app.use("/api/auth", authRoutes);
 app.use("/api/especialidades", especialidadesRoutes);
 app.use("/api/composicion-corporal", composicionCorporalRoutes);
 
-// PRIVADAS (requieren token)
-// Nota: estás aplicando `protect` aquí, y tus routers también pueden usar protect internamente.
-// Es redundante pero válido; si quieres evitar doble protección, quita protect de app.use y confía en las rutas.
+// PRIVADAS
 app.use("/api/clientes", protect, clienteRoutes);
 app.use("/api/membresias", protect, membresiaRoutes);
 app.use("/api/entrenadores", protect, entrenadorRoutes);
 app.use("/api/productos", protect, productRoutes);
 app.use("/api/pagos", protect, pagoRoutes);
+app.use("/api/pagos-ligas", protect, pagosLigasRoutes); // ✅ NUEVO REGISTRO
 app.use("/api/users", protect, userRoutes);
 app.use("/api/clases", protect, claseRoutes);
 app.use("/api/contabilidad", protect, contabilidadRoutes);
@@ -116,14 +114,13 @@ app.use("/api/asistencias", protect, asistenciaRoutes);
 app.use("/api/rutinas", protect, rutinaRoutes);
 app.use("/api/medicion-porristas", protect, medicionPorristasRoutes);
 
-// Si añadiste pagos-ligas, registra la ruta así (descomentar cuando exista):
-// app.use("/api/pagos-ligas", protect, pagosLigasRoutes);
-
 // ================================
-// 🔹 Ruta raíz pública (health check)
+// 🔹 Health Check
 // ================================
 app.get("/", (req, res) => {
-  res.json({ mensaje: "¡Servidor de Admin-Gimnasios funcionando correctamente!" });
+  res.json({
+    mensaje: "💪 Servidor Admin-Gimnasios funcionando correctamente",
+  });
 });
 
 // ================================
@@ -132,18 +129,18 @@ app.get("/", (req, res) => {
 app.use((req, res, next) => {
   if (req.url.startsWith("/api")) {
     console.log(`⚠️ Ruta no encontrada: ${req.method} ${req.url}`);
-    return res.status(404).json({ mensaje: `Ruta no encontrada: ${req.method} ${req.url}` });
+    return res.status(404).json({
+      mensaje: `Ruta no encontrada: ${req.method} ${req.url}`,
+    });
   }
-  // si es otra petición (por ejemplo servir frontend estático) podrías enviar index.html aquí.
   res.status(404).json({ mensaje: "Ruta no encontrada" });
 });
 
 // ================================
-// 🔹 Middleware de manejo de errores (final)
+// 🔹 Middleware de errores global
 // ================================
 app.use((err, req, res, next) => {
   console.error("❌ Error en el servidor:", err.stack || err);
-  // si es un error de CORS enviado por corsOptions, explicitamos 403
   if (err.message && err.message.includes("No permitido por CORS")) {
     return res.status(403).json({ mensaje: "Origen no permitido por CORS" });
   }
@@ -154,9 +151,9 @@ app.use((err, req, res, next) => {
 });
 
 // ================================
-// 🔹 Iniciar servidor
+// 🔹 Levantar servidor
 // ================================
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en el puerto ${PORT} - ENV: ${process.env.NODE_ENV || "undefined"}`);
+  console.log(`🚀 Servidor corriendo en puerto ${PORT} - ENV: ${process.env.NODE_ENV || "undefined"}`);
 });
