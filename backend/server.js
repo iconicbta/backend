@@ -1,10 +1,5 @@
 // backend/server.js
 require("dotenv").config();
-console.log("Variables de entorno cargadas:", {
-  MONGODB_URI: !!process.env.MONGODB_URI,
-  NODE_ENV: process.env.NODE_ENV,
-});
-
 const express = require("express");
 const { connectDB } = require("./config/db");
 const { protect } = require("./middleware/authMiddleware");
@@ -12,22 +7,25 @@ const { protect } = require("./middleware/authMiddleware");
 const app = express();
 
 /* ======================================================
-   🔹 CORS - versión sólida para producción (Vercel/Render)
+   🔹 CORS - versión para debug y compatibilidad total Vercel
 ====================================================== */
 const allowedOrigins = [
   "https://frontendiconic.vercel.app",
-  /^https:\/\/frontendiconic.*\.vercel\.app$/, // subdominios preview
+  /^https:\/\/frontendiconic.*\.vercel\.app$/, // previews
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ];
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  console.log("🛰️ CORS Debug → Origin recibido:", origin, "Método:", req.method);
+
+  // Revisar si está permitido
   const isAllowed = allowedOrigins.some((pattern) =>
     typeof pattern === "string" ? pattern === origin : pattern.test(origin)
   );
 
-  // 🔹 Siempre devolver cabeceras CORS
+  // Enviar SIEMPRE headers CORS
   res.header("Vary", "Origin");
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   res.header(
@@ -35,16 +33,17 @@ app.use((req, res, next) => {
     "Content-Type, Authorization, X-Requested-With"
   );
 
-  if (isAllowed) {
+  if (isAllowed && origin) {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
+    console.log("✅ CORS permitido para:", origin);
   } else {
     res.header("Access-Control-Allow-Origin", "*");
+    console.log("⚠️ CORS abierto (fallback *).");
   }
 
-  // ✅ Responder preflight inmediatamente
   if (req.method === "OPTIONS") {
-    console.log("✅ Preflight recibido desde:", origin);
+    console.log("🟢 Preflight respondido OK desde:", origin);
     return res.sendStatus(200);
   }
 
@@ -52,14 +51,14 @@ app.use((req, res, next) => {
 });
 
 /* ======================================================
-   ✅ Seguridad básica y límites
+   ✅ Seguridad y límites
 ====================================================== */
 app.set("trust proxy", true);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 /* ======================================================
-   🔹 Logger básico
+   🔹 Logger de rutas
 ====================================================== */
 app.use((req, res, next) => {
   console.log(`📩 ${req.method} ${req.url} - ${new Date().toISOString()}`);
@@ -67,18 +66,17 @@ app.use((req, res, next) => {
 });
 
 /* ======================================================
-   🔹 Conexión a MongoDB
+   🔹 Conexión MongoDB
 ====================================================== */
-console.log("Iniciando conexión a MongoDB...");
 connectDB()
-  .then(() => console.log("✅ Conexión a MongoDB establecida"))
-  .catch((error) => {
-    console.error("❌ Error al conectar a MongoDB:", error.message);
+  .then(() => console.log("✅ MongoDB conectado"))
+  .catch((err) => {
+    console.error("❌ Error MongoDB:", err.message);
     process.exit(1);
   });
 
 /* ======================================================
-   🔹 Importar rutas
+   🔹 Rutas
 ====================================================== */
 const clienteRoutes = require("./routes/clienteRoutes");
 const membresiaRoutes = require("./routes/membresiaRoutes");
@@ -97,15 +95,12 @@ const medicionPorristasRoutes = require("./routes/medicionPorristas");
 const especialidadesRoutes = require("./routes/especialidades");
 const pagosLigasRoutes = require("./routes/pagosLigasRoutes");
 
-/* ======================================================
-   🔹 Registrar rutas
-====================================================== */
-// PÚBLICAS
+// Rutas públicas
 app.use("/api/auth", authRoutes);
 app.use("/api/especialidades", especialidadesRoutes);
 app.use("/api/composicion-corporal", composicionCorporalRoutes);
 
-// PRIVADAS
+// Privadas
 app.use("/api/clientes", protect, clienteRoutes);
 app.use("/api/membresias", protect, membresiaRoutes);
 app.use("/api/entrenadores", protect, entrenadorRoutes);
@@ -119,22 +114,18 @@ app.use("/api/asistencias", protect, asistenciaRoutes);
 app.use("/api/rutinas", protect, rutinaRoutes);
 app.use("/api/medicion-porristas", protect, medicionPorristasRoutes);
 
-// 🔸 Temporalmente sin protección mientras pruebas pagos de ligas
+// Temporalmente sin protección
 app.use("/api/pagos-ligas", pagosLigasRoutes);
-// Cuando funcione bien, cambia a:
-// app.use("/api/pagos-ligas", protect, pagosLigasRoutes);
 
 /* ======================================================
    🔹 Health Check
 ====================================================== */
 app.get("/", (req, res) => {
-  res.json({
-    mensaje: "💪 Servidor Admin-Gimnasios funcionando correctamente",
-  });
+  res.json({ mensaje: "💪 Backend Iconic OK" });
 });
 
 /* ======================================================
-   🔹 Manejo de rutas no encontradas
+   🔹 Errores
 ====================================================== */
 app.use((req, res, next) => {
   if (req.url.startsWith("/api")) {
@@ -146,14 +137,8 @@ app.use((req, res, next) => {
   res.status(404).json({ mensaje: "Ruta no encontrada" });
 });
 
-/* ======================================================
-   🔹 Manejo global de errores
-====================================================== */
 app.use((err, req, res, next) => {
-  console.error("❌ Error en el servidor:", err.stack || err);
-  if (err.message && err.message.includes("No permitido por CORS")) {
-    return res.status(403).json({ mensaje: "Origen no permitido por CORS" });
-  }
+  console.error("❌ Error global:", err.stack || err);
   res.status(500).json({
     mensaje: "Error interno del servidor",
     error: err.message || "Error desconocido",
@@ -161,11 +146,9 @@ app.use((err, req, res, next) => {
 });
 
 /* ======================================================
-   🔹 Iniciar servidor
+   🔹 Arranque
 ====================================================== */
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(
-    `🚀 Servidor corriendo en puerto ${PORT} - ENV: ${process.env.NODE_ENV || "undefined"}`
-  );
-});
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on port ${PORT} - ENV: ${process.env.NODE_ENV}`)
+);
