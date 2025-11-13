@@ -1,54 +1,99 @@
+// backend/api/index.js
 const express = require("express");
 const cors = require("cors");
-const { MongoClient } = require("realm");
-const router = require("./routes/index");
+const Realm = require("realm-web"); // ✅ Correcta importación
+const router = require("../routes/index"); // ✅ Asegúrate de la ruta correcta
 
 const app = express();
 
-// Configura CORS para tu frontend con manejo de preflight
-const corsOptions = {
-  origin: "https://frontendporras-m7dzbit26-alfredos-projects-a028b04c.vercel.app",
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  credentials: true,
-  optionsSuccessStatus: 204, // Respuesta correcta para OPTIONS
-};
+/* ======================================================
+   ✅ CORS — versión funcional para Vercel
+====================================================== */
+const allowedOrigins = [
+  "https://frontendiconic.vercel.app",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
 
-app.use(cors(corsOptions));
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Requested-With"
+    );
+    res.header("Access-Control-Allow-Credentials", "true");
+  }
 
-// Middleware para parsear JSON
-app.use(express.json());
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200); // ✅ Preflight OK
+  }
 
-// Conexión a MongoDB con Realm
+  next();
+});
+
+/* ======================================================
+   ✅ Middlewares base
+====================================================== */
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+/* ======================================================
+   ✅ Conexión a MongoDB vía Realm
+====================================================== */
 const appId = process.env.REALM_APP_ID;
 const apiKey = process.env.REALM_API_KEY;
+
+if (!appId || !apiKey) {
+  console.error("❌ Faltan variables de entorno: REALM_APP_ID o REALM_API_KEY");
+}
+
 const realmApp = new Realm.App({ id: appId });
+let cachedClient = null;
 
 async function connectToMongo() {
+  if (cachedClient) return cachedClient;
+
   try {
     const credentials = Realm.Credentials.apiKey(apiKey);
     const user = await realmApp.logIn(credentials);
-    const client = user.mongoClient("mongodb-atlas");
-    console.log("Conectado a MongoDB via Realm");
-    return client.db("gimnasio_db");
+    cachedClient = user.mongoClient("mongodb-atlas").db("gimnasio_db");
+    console.log("✅ Conectado a MongoDB via Realm");
+    return cachedClient;
   } catch (err) {
-    console.error("Error de conexión a MongoDB:", err);
-    throw err; // Propaga el error para manejarlo en el middleware
+    console.error("❌ Error de conexión a MongoDB:", err.message);
+    throw err;
   }
 }
 
-// Middleware para inyectar la conexión
+// Middleware global para inyectar conexión
 app.use(async (req, res, next) => {
   try {
     req.db = await connectToMongo();
     next();
   } catch (err) {
-    res.status(500).json({ mensaje: "Error de conexión a la base de datos", detalle: err.message });
+    res
+      .status(500)
+      .json({ mensaje: "Error de conexión a la base de datos", detalle: err.message });
   }
 });
 
-// Monta las rutas (agrega un log para depuración)
-console.log("Montando rutas en /api");
+/* ======================================================
+   ✅ Rutas API
+====================================================== */
+console.log("📦 Montando rutas en /api");
 app.use("/api", router);
 
-// Exporta la app para Vercel
+/* ======================================================
+   ✅ Ruta base para prueba
+====================================================== */
+app.get("/", (req, res) => {
+  res.json({ mensaje: "💪 Backend Iconic operativo con CORS habilitado" });
+});
+
+/* ======================================================
+   ✅ Exportar para Vercel (sin app.listen)
+====================================================== */
 module.exports = app;
