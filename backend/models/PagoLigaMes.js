@@ -1,5 +1,5 @@
-// models/PagoLigaMes.js
-import mongoose from "mongoose";
+// backend/models/PagoLigaMes.js
+const mongoose = require("mongoose");
 
 const pagoLigaMesSchema = new mongoose.Schema(
   {
@@ -13,4 +13,4 @@ const pagoLigaMesSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("PagoLigaMes", pagoLigaMesSchema);
+module.exports = mongoose.model("PagoLigaMes", pagoLigaMesSchema);
