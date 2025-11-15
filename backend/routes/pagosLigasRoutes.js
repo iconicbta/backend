@@ -8,7 +8,6 @@ const {
   registrarPago,
   actualizarValorDiario,
 } = require("../controllers/pagosLigasController");
-
 const ConfiguracionPagoLiga = require("../models/ConfiguracionPagoLiga");
 
 // CONFIGURACIÓN
@@ -18,13 +17,15 @@ router.get("/configuracion", async (req, res) => {
     if (!config) config = await ConfiguracionPagoLiga.create({ valorDiario: 8000 });
     res.json(config);
   } catch (error) {
-    res.status(500).json({ message: "Error al obtener configuración", error });
+    console.error("Error al obtener configuración:", error);
+    res.status(500).json({ message: "Error al obtener configuración", error: error.message });
   }
 });
 
 router.put("/configuracion", async (req, res) => {
   try {
     const { valorDiario } = req.body;
+    if (!valorDiario) return res.status(400).json({ message: "Valor diario requerido" });
     let config = await ConfiguracionPagoLiga.findOne();
     if (!config) {
       config = await ConfiguracionPagoLiga.create({ valorDiario });
@@ -34,7 +35,8 @@ router.put("/configuracion", async (req, res) => {
     }
     res.json({ message: "Configuración actualizada", config });
   } catch (error) {
-    res.status(500).json({ message: "Error al actualizar configuración", error });
+    console.error("Error al actualizar configuración:", error);
+    res.status(500).json({ message: "Error al actualizar configuración", error: error.message });
   }
 });
 
@@ -48,10 +50,12 @@ router.post("/pagos", registrarPago);
 router.delete("/pagos/:id", async (req, res) => {
   const PagoLigaMes = require("../models/PagoLigaMes");
   try {
-    await PagoLigaMes.findByIdAndDelete(req.params.id);
-    res.json({ message: "Pago eliminado" });
+    const result = await PagoLigaMes.findByIdAndDelete(req.params.id);
+    if (!result) return res.status(404).json({ message: "Pago no encontrado" });
+    res.json({ message: "Pago eliminado correctamente" });
   } catch (error) {
-    res.status(500).json({ message: "Error al eliminar", error });
+    console.error("Error al eliminar pago:", error);
+    res.status(500).json({ message: "Error al eliminar pago", error: error.message });
   }
 });
 
