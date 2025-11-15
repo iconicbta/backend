@@ -1,5 +1,5 @@
-// models/ConfiguracionPagoLiga.js
-import mongoose from "mongoose";
+// backend/models/ConfiguracionPagoLiga.js
+const mongoose = require("mongoose");
 
 const configuracionPagoLigaSchema = new mongoose.Schema(
   {
@@ -16,4 +16,4 @@ const configuracionPagoLigaSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("ConfiguracionPagoLiga", configuracionPagoLigaSchema);
+module.exports = mongoose.model("ConfiguracionPagoLiga", configuracionPagoLigaSchema);
