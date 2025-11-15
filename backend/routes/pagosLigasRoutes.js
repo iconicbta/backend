@@ -9,9 +9,6 @@ const {
   actualizarValorDiario,
 } = require("../controllers/pagosLigasController");
 
-// Modelos
-const PagoLigaMes = require("../models/PagoLigaMes");
-const MesLiga = require("../models/MesLiga");
 const ConfiguracionPagoLiga = require("../models/ConfiguracionPagoLiga");
 
 // CONFIGURACIÓN
@@ -47,8 +44,9 @@ router.post("/crear-mes", crearMes);
 
 // PAGOS
 router.get("/pagos/:mes", obtenerPagosPorMes);
-router.post("/pagos", registrarPago); // Cambiado: ahora recibe mes en body
+router.post("/pagos", registrarPago);
 router.delete("/pagos/:id", async (req, res) => {
+  const PagoLigaMes = require("../models/PagoLigaMes");
   try {
     await PagoLigaMes.findByIdAndDelete(req.params.id);
     res.json({ message: "Pago eliminado" });
