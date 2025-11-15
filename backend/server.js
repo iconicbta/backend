@@ -3,11 +3,12 @@ require("dotenv").config();
 const express = require("express");
 const { connectDB } = require("./config/db");
 const { protect } = require("./middleware/authMiddleware");
+const path = require("path");
 
 const app = express();
 
 /* ======================================================
-   🔹 CORS PARA RENDER (permite preflight)
+   🔹 CORS FIX DEFINITIVO PARA RENDER + VERCEL + AXIOS
 ====================================================== */
 const allowedOrigins = [
   "https://frontendiconic.vercel.app",
@@ -19,20 +20,27 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
 
   const isAllowed = allowedOrigins.some((pattern) =>
-    typeof pattern === "string" ? pattern === origin : pattern.test(origin)
+    typeof pattern === "string"
+      ? pattern === origin
+      : pattern.test(origin)
   );
 
   res.header("Vary", "Origin");
-  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With"
-  );
 
   if (isAllowed) {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
   }
+
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+  );
+
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-xsrf-token, x-access-token, *"
+  );
 
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
@@ -42,7 +50,7 @@ app.use((req, res, next) => {
 });
 
 /* ======================================================
-   🔹 Seguridad y límites
+   🔹 Seguridad y Body Parser
 ====================================================== */
 app.set("trust proxy", true);
 app.use(express.json({ limit: "10mb" }));
@@ -57,7 +65,7 @@ app.use((req, res, next) => {
 });
 
 /* ======================================================
-   🔹 Conexión MongoDB
+   🔹 Conexión con MongoDB Atlas
 ====================================================== */
 connectDB()
   .then(() => console.log("🟢 MongoDB conectado"))
@@ -67,15 +75,20 @@ connectDB()
   });
 
 /* ======================================================
-   🔹 Importar rutas
+   🔹 RUTAS (IMPORTACIÓN)
 ====================================================== */
+
+// Rutas públicas
 app.use("/api/auth", require("./routes/authRoutes"));
-app.use("/api/especialidades", require("./routes/especialidades"));
+app.use("/api/pagos-ligas", require("./routes/pagosLigasRoutes"));
+
+// Rutas protegidas
+app.use("/api/especialidades", protect, require("./routes/especialidades"));
 app.use(
   "/api/composicion-corporal",
+  protect,
   require("./routes/composicionCorporal")
 );
-
 app.use("/api/clientes", protect, require("./routes/clienteRoutes"));
 app.use("/api/membresias", protect, require("./routes/membresiaRoutes"));
 app.use("/api/entrenadores", protect, require("./routes/entrenadorRoutes"));
@@ -93,33 +106,36 @@ app.use(
   require("./routes/medicionPorristas")
 );
 
-// temporal sin proteccion
-app.use("/api/pagos-ligas", require("./routes/pagosLigasRoutes"));
-
 /* ======================================================
-   🔹 Health Check
+   🔹 Health Check (Render lo necesita)
 ====================================================== */
 app.get("/", (req, res) => {
   res.json({ mensaje: "Backend corriendo correctamente en Render" });
 });
 
 /* ======================================================
-   🔹 Manejo de errores
+   🔹 Manejo de 404
 ====================================================== */
 app.use((req, res) => {
   res.status(404).json({ mensaje: "Ruta no encontrada" });
 });
 
+/* ======================================================
+   🔹 Manejo de Errores Globales
+====================================================== */
 app.use((err, req, res, next) => {
   console.error("Error global:", err);
-  res.status(500).json({ mensaje: "Error interno", detalle: err.message });
+  res.status(500).json({
+    mensaje: "Error interno del servidor",
+    detalle: err.message,
+  });
 });
 
 /* ======================================================
-   🔹 INICIAR SERVIDOR (REQUERIDO POR RENDER)
+   🔹 Servidor (Render EXIGE 0.0.0.0)
 ====================================================== */
 const PORT = process.env.PORT || 10000;
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-});
+app.listen(PORT, "0.0.0.0", () =>
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`)
+);
