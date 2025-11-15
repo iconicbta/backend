@@ -8,22 +8,22 @@ const obtenerMeses = async (req, res) => {
     const meses = await MesLiga.find().sort({ createdAt: -1 });
     res.json(meses.map(m => ({ _id: m._id, nombre: m.nombre })));
   } catch (error) {
-    res.status(500).json({ message: "Error al obtener meses" });
+    console.error("Error al obtener meses:", error);
+    res.status(500).json({ message: "Error al obtener meses", error: error.message });
   }
 };
 
 const crearMes = async (req, res) => {
   const { nombre } = req.body;
   if (!nombre?.trim()) return res.status(400).json({ message: "Nombre requerido" });
-
   try {
     const existe = await MesLiga.findOne({ nombre });
     if (existe) return res.status(400).json({ message: "Mes ya existe" });
-
     const nuevoMes = await MesLiga.create({ nombre });
-    res.json({ message: "Mes creado", mes: { _id: nuevoMes._id, nombre } });
+    res.json({ message: "Mes creado correctamente", mes: { _id: nuevoMes._id, nombre } });
   } catch (error) {
-    res.status(500).json({ message: "Error al crear mes", error });
+    console.error("Error al crear mes:", error);
+    res.status(500).json({ message: "Error al crear mes", error: error.message });
   }
 };
 
@@ -33,21 +33,18 @@ const obtenerPagosPorMes = async (req, res) => {
     const pagos = await PagoLigaMes.find({ mes }).sort({ createdAt: -1 });
     res.json(pagos);
   } catch (error) {
-    res.status(500).json({ message: "Error al obtener pagos" });
+    console.error("Error al obtener pagos por mes:", error);
+    res.status(500).json({ message: "Error al obtener pagos", error: error.message });
   }
 };
 
 const registrarPago = async (req, res) => {
   const { nombre, equipo, mes, diasAsistidos } = req.body;
-
-  if (!nombre || !equipo || !mes || !diasAsistidos)
-    return res.status(400).json({ message: "Faltan datos" });
-
+  if (!nombre || !equipo || !mes || !diasAsistidos) return res.status(400).json({ message: "Faltan datos" });
   try {
     const config = await ConfiguracionPagoLiga.findOne();
     const valorDiario = config?.valorDiario || 8000;
     const total = diasAsistidos * valorDiario;
-
     const pago = await PagoLigaMes.create({
       nombre,
       equipo,
@@ -56,17 +53,16 @@ const registrarPago = async (req, res) => {
       total,
       valorDiarioUsado: valorDiario,
     });
-
-    res.json({ message: "Pago registrado", pago });
+    res.json({ message: "Pago registrado correctamente", pago });
   } catch (error) {
-    res.status(500).json({ message: "Error al registrar", error });
+    console.error("Error al registrar pago:", error);
+    res.status(500).json({ message: "Error al registrar pago", error: error.message });
   }
 };
 
 const actualizarValorDiario = async (req, res) => {
   const { valor } = req.body;
   if (!valor || valor <= 0) return res.status(400).json({ message: "Valor inválido" });
-
   try {
     let config = await ConfiguracionPagoLiga.findOne();
     if (!config) {
@@ -75,9 +71,10 @@ const actualizarValorDiario = async (req, res) => {
       config.valorDiario = valor;
       await config.save();
     }
-    res.json({ message: "Valor actualizado", config });
+    res.json({ message: "Valor diario actualizado correctamente", config });
   } catch (error) {
-    res.status(500).json({ message: "Error al actualizar", error });
+    console.error("Error al actualizar valor diario:", error);
+    res.status(500).json({ message: "Error al actualizar valor diario", error: error.message });
   }
 };
 
