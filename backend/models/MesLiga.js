@@ -1,5 +1,5 @@
 // backend/models/MesLiga.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const mesLigaSchema = new mongoose.Schema(
   {
@@ -8,4 +8,4 @@ const mesLigaSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("MesLiga", mesLigaSchema);
+module.exports = mongoose.model("MesLiga", mesLigaSchema);
