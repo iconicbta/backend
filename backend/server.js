@@ -3,49 +3,39 @@ require("dotenv").config();
 const express = require("express");
 const { connectDB } = require("./config/db");
 const { protect } = require("./middleware/authMiddleware");
-const path = require("path");
-
 const app = express();
 
 /* ======================================================
-   🔹 CORS FIX DEFINITIVO PARA RENDER + VERCEL + AXIOS
+   🔹 CORS FIX DEFINITIVO PARA RENDER + AXIOS
 ====================================================== */
 const allowedOrigins = [
   "https://frontendiconic.vercel.app",
   /^https:\/\/frontendiconic.*\.vercel\.app$/,
   "http://localhost:3000",
 ];
-
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-
   const isAllowed = allowedOrigins.some((pattern) =>
     typeof pattern === "string"
       ? pattern === origin
       : pattern.test(origin)
   );
-
   res.header("Vary", "Origin");
-
   if (isAllowed) {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
   }
-
   res.header(
     "Access-Control-Allow-Methods",
     "GET,POST,PUT,DELETE,PATCH,OPTIONS"
   );
-
   res.header(
     "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-xsrf-token, x-access-token, *"
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-xsrf-token, x-access-token"
   );
-
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
   }
-
   next();
 });
 
@@ -77,11 +67,9 @@ connectDB()
 /* ======================================================
    🔹 RUTAS (IMPORTACIÓN)
 ====================================================== */
-
 // Rutas públicas
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/pagos-ligas", require("./routes/pagosLigasRoutes"));
-
 // Rutas protegidas
 app.use("/api/especialidades", protect, require("./routes/especialidades"));
 app.use(
@@ -135,14 +123,6 @@ app.use((err, req, res, next) => {
    🔹 Servidor (Render EXIGE 0.0.0.0)
 ====================================================== */
 const PORT = process.env.PORT || 10000;
-
-// Solo en desarrollo local
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, "0.0.0.0", () =>
-    console.log(`Servidor corriendo en puerto ${PORT}`)
-  );
-}
-
-// Exportar para Vercel
-module.exports = app;
-
+app.listen(PORT, "0.0.0.0", () =>
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`)
+);
