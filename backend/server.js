@@ -7,17 +7,20 @@ const { protect } = require("./middleware/authMiddleware");
 const app = express();
 
 /* ======================================================
-   🔹 CORS GLOBAL - TOTALMENTE COMPATIBLE CON VERCEL
+   🔹 CORS PARA RENDER (permite preflight)
 ====================================================== */
 const allowedOrigins = [
   "https://frontendiconic.vercel.app",
   /^https:\/\/frontendiconic.*\.vercel\.app$/,
   "http://localhost:3000",
-  "http://127.0.0.1:3000",
 ];
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+
+  const isAllowed = allowedOrigins.some((pattern) =>
+    typeof pattern === "string" ? pattern === origin : pattern.test(origin)
+  );
 
   res.header("Vary", "Origin");
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
@@ -26,15 +29,9 @@ app.use((req, res, next) => {
     "Content-Type, Authorization, X-Requested-With"
   );
 
-  const isAllowed = allowedOrigins.some((pattern) =>
-    typeof pattern === "string" ? pattern === origin : pattern.test(origin)
-  );
-
   if (isAllowed) {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
-  } else {
-    res.header("Access-Control-Allow-Origin", "*");
   }
 
   if (req.method === "OPTIONS") {
@@ -45,14 +42,14 @@ app.use((req, res, next) => {
 });
 
 /* ======================================================
-   Seguridad y límites
+   🔹 Seguridad y límites
 ====================================================== */
 app.set("trust proxy", true);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 /* ======================================================
-   Logger
+   🔹 Logger
 ====================================================== */
 app.use((req, res, next) => {
   console.log(`📩 ${req.method} ${req.url}`);
@@ -60,18 +57,25 @@ app.use((req, res, next) => {
 });
 
 /* ======================================================
-   Conexión MongoDB
+   🔹 Conexión MongoDB
 ====================================================== */
-connectDB();
+connectDB()
+  .then(() => console.log("🟢 MongoDB conectado"))
+  .catch((err) => {
+    console.error("❌ Error al conectar MongoDB:", err.message);
+    process.exit(1);
+  });
 
 /* ======================================================
-   Rutas
+   🔹 Importar rutas
 ====================================================== */
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/especialidades", require("./routes/especialidades"));
-app.use("/api/composicion-corporal", require("./routes/composicionCorporal"));
+app.use(
+  "/api/composicion-corporal",
+  require("./routes/composicionCorporal")
+);
 
-// PRIVADAS
 app.use("/api/clientes", protect, require("./routes/clienteRoutes"));
 app.use("/api/membresias", protect, require("./routes/membresiaRoutes"));
 app.use("/api/entrenadores", protect, require("./routes/entrenadorRoutes"));
@@ -83,38 +87,39 @@ app.use("/api/contabilidad", protect, require("./routes/contabilidad"));
 app.use("/api/indicadores", protect, require("./routes/indicadorRoutes"));
 app.use("/api/asistencias", protect, require("./routes/asistenciaRoutes"));
 app.use("/api/rutinas", protect, require("./routes/rutinas"));
-app.use("/api/medicion-porristas", protect, require("./routes/medicionPorristas"));
+app.use(
+  "/api/medicion-porristas",
+  protect,
+  require("./routes/medicionPorristas")
+);
 
-// Temporalmente sin protección
+// temporal sin proteccion
 app.use("/api/pagos-ligas", require("./routes/pagosLigasRoutes"));
 
 /* ======================================================
-   Health Check
+   🔹 Health Check
 ====================================================== */
 app.get("/", (req, res) => {
-  res.json({ mensaje: "💪 Backend Iconic OK" });
+  res.json({ mensaje: "Backend corriendo correctamente en Render" });
 });
 
 /* ======================================================
-   Manejo de errores
+   🔹 Manejo de errores
 ====================================================== */
 app.use((req, res) => {
-  return res.status(404).json({
-    mensaje: `Ruta no encontrada: ${req.method} ${req.url}`,
-  });
+  res.status(404).json({ mensaje: "Ruta no encontrada" });
 });
 
 app.use((err, req, res, next) => {
-  console.error("❌ Error global:", err);
-  return res.status(500).json({
-    mensaje: "Error interno del servidor",
-    error: err.message,
-  });
+  console.error("Error global:", err);
+  res.status(500).json({ mensaje: "Error interno", detalle: err.message });
 });
 
 /* ======================================================
-   🚫 NO USAR app.listen() EN VERCEL
-   EXPORTAR EL HANDLER
+   🔹 INICIAR SERVIDOR (REQUERIDO POR RENDER)
 ====================================================== */
-module.exports = app;
+const PORT = process.env.PORT || 10000;
 
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+});
