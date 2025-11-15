@@ -3,7 +3,6 @@ const MesLiga = require("../models/MesLiga");
 const PagoLigaMes = require("../models/PagoLigaMes");
 const ConfiguracionPagoLiga = require("../models/ConfiguracionPagoLiga");
 
-// GET /meses
 const obtenerMeses = async (req, res) => {
   try {
     const meses = await MesLiga.find().sort({ createdAt: -1 });
@@ -13,10 +12,9 @@ const obtenerMeses = async (req, res) => {
   }
 };
 
-// POST /crear-mes
 const crearMes = async (req, res) => {
   const { nombre } = req.body;
-  if (!nombre) return res.status(400).json({ message: "Nombre requerido" });
+  if (!nombre?.trim()) return res.status(400).json({ message: "Nombre requerido" });
 
   try {
     const existe = await MesLiga.findOne({ nombre });
@@ -29,7 +27,6 @@ const crearMes = async (req, res) => {
   }
 };
 
-// GET /pagos/:mes
 const obtenerPagosPorMes = async (req, res) => {
   const { mes } = req.params;
   try {
@@ -40,7 +37,6 @@ const obtenerPagosPorMes = async (req, res) => {
   }
 };
 
-// POST /pagos (nuevo pago individual)
 const registrarPago = async (req, res) => {
   const { nombre, equipo, mes, diasAsistidos } = req.body;
 
@@ -67,7 +63,6 @@ const registrarPago = async (req, res) => {
   }
 };
 
-// PUT /valor-diario
 const actualizarValorDiario = async (req, res) => {
   const { valor } = req.body;
   if (!valor || valor <= 0) return res.status(400).json({ message: "Valor inválido" });
