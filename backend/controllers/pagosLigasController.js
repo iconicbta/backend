@@ -2,17 +2,15 @@
 const PagoLigaMes = require("../models/PagoLigaMes");
 const ConfiguracionPagoLiga = require("../models/ConfiguracionPagoLiga");
 
-// Obtener todos los meses registrados
 const obtenerMeses = async (req, res) => {
   try {
     const meses = await PagoLigaMes.distinct("mes");
     res.json(meses.map(m => ({ _id: m, nombre: m })));
   } catch (error) {
-    res.status(500).json({ message: "Error al obtener meses", error: error.message });
+    res.status(500).json({ message: "Error al obtener meses" });
   }
 };
 
-// Crear un nuevo mes (solo si no existe)
 const crearMes = async (req, res) => {
   try {
     const { nombre } = req.body;
@@ -21,24 +19,22 @@ const crearMes = async (req, res) => {
     const existe = await PagoLigaMes.findOne({ mes: nombre });
     if (existe) return res.status(400).json({ message: "El mes ya existe" });
 
-    res.json({ message: "Mes creado correctamente", nombre });
+    res.json({ message: "Mes creado", nombre });
   } catch (error) {
-    res.status(500).json({ message: "Error al crear mes", error: error.message });
+    res.status(500).json({ message: "Error al crear mes" });
   }
 };
 
-// Obtener todos los pagos de un mes
 const obtenerPagosPorMes = async (req, res) => {
   try {
     const { mes } = req.params;
     const pagos = await PagoLigaMes.find({ mes }).sort({ createdAt: -1 });
     res.json(pagos);
   } catch (error) {
-    res.status(500).json({ message: "Error al obtener pagos", error: error.message });
+    res.status(500).json({ message: "Error al obtener pagos" });
   }
 };
 
-// REGISTRAR PAGO (CORREGIDO Y 100% FUNCIONAL)
 const registrarPago = async (req, res) => {
   try {
     const {
@@ -48,7 +44,7 @@ const registrarPago = async (req, res) => {
       diasAsistidos,
       total,
       valorDiarioUsado,
-      diasPagados = []  // ← AHORA SÍ SE RECIBE Y GUARDA
+      diasPagados = []  // ← AHORA SÍ SE GUARDA
     } = req.body;
 
     if (!nombre || !mes || !diasAsistidos || !total) {
@@ -62,18 +58,17 @@ const registrarPago = async (req, res) => {
       diasAsistidos,
       total,
       valorDiarioUsado: valorDiarioUsado || total / diasAsistidos,
-      diasPagados, // ← GUARDADO CORRECTAMENTE
+      diasPagados,
     });
 
     await nuevoPago.save();
     res.status(201).json(nuevoPago);
   } catch (error) {
     console.error("Error al registrar pago:", error);
-    res.status(500).json({ message: "Error al registrar pago", error: error.message });
+    res.status(500).json({ message: "Error al registrar pago" });
   }
 };
 
-// Actualizar valor diario global
 const actualizarValorDiario = async (req, res) => {
   try {
     const { valor } = req.body;
@@ -89,7 +84,7 @@ const actualizarValorDiario = async (req, res) => {
 
     res.json({ message: "Valor diario actualizado", valorDiario: config.valorDiario });
   } catch (error) {
-    res.status(500).json({ message: "Error al actualizar valor diario", error: error.message });
+    res.status(500).json({ message: "Error al actualizar valor diario" });
   }
 };
 
