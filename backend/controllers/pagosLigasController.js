@@ -1,19 +1,16 @@
 // backend/controllers/pagosLigasController.js
 const PagoLigaMes = require("../models/PagoLigaMes");
-const ConfiguracionPagoLiga = require("../models/ConfiguracionPagoLiga);
+const ConfiguracionPagoLiga = require("../models/ConfiguracionPagoLiga");
 
-// OBTENER MESES (ahora ordenados correctamente)
+// OBTENER MESES ORDENADOS
 const obtenerMeses = async (req, res) => {
   try {
     const meses = await PagoLigaMes.distinct("mes");
 
-    // Ordenar meses cronológicamente (de más reciente a más antiguo)
     const mesesOrdenados = meses.sort((a, b) => {
-      const [mesA, añoA] = a.split(" ");
-      const [mesB, añoB] = b.split(" ");
-      const dateA = new Date(`${mesA} 1, ${añoA}`);
-      const dateB = new Date(`${mesB} 1, ${añoB}`);
-      return dateB - dateA; // Más reciente primero
+      const dateA = new Date(a.replace(" de ", " "));
+      const dateB = new Date(b.replace(" de ", " "));
+      return dateB - dateA;
     });
 
     res.json(mesesOrdenados.map(m => ({ _id: m, nombre: m })));
@@ -23,55 +20,47 @@ const obtenerMeses = async (req, res) => {
   }
 };
 
-// CREAR MES → AHORA SÍ SE GUARDA EN LA BASE DE DATOS
+// CREAR MES (AHORA SÍ SE GUARDA)
 const crearMes = async (req, res) => {
   try {
     const { nombre } = req.body;
-
     if (!nombre || !nombre.trim()) {
       return res.status(400).json({ message: "Nombre del mes requerido" });
     }
 
     const nombreMes = nombre.trim();
 
-    // Verificar si ya existe
     const existe = await PagoLigaMes.findOne({ mes: nombreMes });
     if (existe) {
       return res.status(400).json({ message: "El mes ya existe" });
     }
 
-    // CREAR UN REGISTRO FICTICIO PARA QUE EL MES APAREZCA EN LA LISTA
-    const registroMes = new PagoLigaMes({
-      nombre: "SYSTEM_CREATED_MONTH",     // Nombre ficticio
+    // Registro ficticio para que el mes aparezca
+    const registro = new PagoLigaMes({
+      nombre: "SYSTEM",
       equipo: "Ligas",
       mes: nombreMes,
       diasAsistidos: 0,
       total: 0,
-      valorDiarioUsado: 8000,
       diasPagados: [],
     });
 
-    await registroMes.save();
-
-    res.json({ 
-      message: "Mes creado correctamente", 
-      nombre: nombreMes 
-    });
+    await registro.save();
+    res.json({ message: "Mes creado correctamente", nombre: nombreMes });
   } catch (error) {
     console.error("Error al crear mes:", error);
     res.status(500).json({ message: "Error al crear mes" });
   }
 };
 
-// OBTENER PAGOS POR MES (sin cambios, funciona perfecto)
+// OBTENER PAGOS (filtrando el registro ficticio)
 const obtenerPagosPorMes = async (req, res) => {
   try {
     const { mes } = req.params;
-    const pagos = await PagoLigaMes.find({ mes })
-      .sort({ createdAt: -1 });
-
-    // Filtrar el registro ficticio "SYSTEM_CREATED_MONTH" para que no aparezca en la tabla
-    const pagosReales = pagos.filter(p => p.nombre !== "SYSTEM_CREATED_MONTH");
+    const pagos = await PagoLigaMes.find({ mes }).sort({ createdAt: -1 });
+    
+    // Filtrar el registro "SYSTEM" para que no aparezca en la tabla
+    const pagosReales = pagos.filter(p => p.nombre !== "SYSTEM");
 
     res.json(pagosReales);
   } catch (error) {
@@ -80,7 +69,7 @@ const obtenerPagosPorMes = async (req, res) => {
   }
 };
 
-// REGISTRAR PAGO (ya estaba perfecto)
+// REGISTRAR PAGO
 const registrarPago = async (req, res) => {
   try {
     const {
