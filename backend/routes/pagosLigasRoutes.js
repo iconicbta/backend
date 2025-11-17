@@ -9,57 +9,48 @@ const {
   actualizarValorDiario,
 } = require("../controllers/pagosLigasController");
 const ConfiguracionPagoLiga = require("../models/ConfiguracionPagoLiga");
+const auth = require("../middleware/auth"); // ← Asegúrate de tener este middleware
 
-// CONFIGURACIÓN
+// CONFIGURACIÓN VALOR DIARIO
 router.get("/configuracion", async (req, res) => {
   try {
     let config = await ConfiguracionPagoLiga.findOne();
     if (!config) config = await ConfiguracionPagoLiga.create({ valorDiario: 8000 });
     res.json(config);
   } catch (error) {
-    console.error("Error al obtener configuración:", error);
-    res.status(500).json({ message: "Error al obtener configuración", error: error.message });
+    res.status(500).json({ message: "Error al obtener configuración" });
   }
 });
 
 router.put("/configuracion", async (req, res) => {
   try {
     const { valorDiario } = req.body;
-    if (!valorDiario) return res.status(400).json({ message: "Valor diario requerido" });
     let config = await ConfiguracionPagoLiga.findOne();
-    if (!config) {
-      config = await ConfiguracionPagoLiga.create({ valorDiario });
-    } else {
-      config.valorDiario = valorDiario;
-      await config.save();
-    }
+    if (!config) config = await ConfiguracionPagoLiga.create({ valorDiario });
+    else config.valorDiario = valorDiario;
+    await config.save();
     res.json({ message: "Configuración actualizada", config });
   } catch (error) {
-    console.error("Error al actualizar configuración:", error);
-    res.status(500).json({ message: "Error al actualizar configuración", error: error.message });
+    res.status(500).json({ message: "Error al actualizar configuración" });
   }
 });
 
-// MESES
-router.get("/meses", obtenerMeses);
-router.post("/crear-mes", crearMes);
-
-// PAGOS
-router.get("/pagos/:mes", obtenerPagosPorMes);
-router.post("/pagos", registrarPago);
-router.delete("/pagos/:id", async (req, res) => {
+// RUTAS PRINCIPALES
+router.get("/meses", auth, obtenerMeses);
+router.post("/crear-mes", auth, crearMes);
+router.get("/pagos/:mes", auth, obtenerPagosPorMes);
+router.post("/pagos", auth, registrarPago);                    // ← AHORA GUARDA diasPagados
+router.delete("/pagos/:id", auth, async (req, res) => {
   const PagoLigaMes = require("../models/PagoLigaMes");
   try {
     const result = await PagoLigaMes.findByIdAndDelete(req.params.id);
     if (!result) return res.status(404).json({ message: "Pago no encontrado" });
-    res.json({ message: "Pago eliminado correctamente" });
+    res.json({ message: "Pago eliminado" });
   } catch (error) {
-    console.error("Error al eliminar pago:", error);
-    res.status(500).json({ message: "Error al eliminar pago", error: error.message });
+    res.status(500).json({ message: "Error al eliminar" });
   }
 });
 
-// VALOR DIARIO
-router.put("/valor-diario", actualizarValorDiario);
+router.put("/valor-diario", auth, actualizarValorDiario);
 
 module.exports = router;
