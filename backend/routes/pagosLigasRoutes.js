@@ -9,9 +9,8 @@ const {
   actualizarValorDiario,
 } = require("../controllers/pagosLigasController");
 const ConfiguracionPagoLiga = require("../models/ConfiguracionPagoLiga");
-const auth = require("../middleware/auth"); // ← Asegúrate de tener este middleware
 
-// CONFIGURACIÓN VALOR DIARIO
+// CONFIGURACIÓN (público)
 router.get("/configuracion", async (req, res) => {
   try {
     let config = await ConfiguracionPagoLiga.findOne();
@@ -35,12 +34,12 @@ router.put("/configuracion", async (req, res) => {
   }
 });
 
-// RUTAS PRINCIPALES
-router.get("/meses", auth, obtenerMeses);
-router.post("/crear-mes", auth, crearMes);
-router.get("/pagos/:mes", auth, obtenerPagosPorMes);
-router.post("/pagos", auth, registrarPago);                    // ← AHORA GUARDA diasPagados
-router.delete("/pagos/:id", auth, async (req, res) => {
+// RUTAS DE PAGOS LIGAS → SIN auth para que Render no se caiga
+router.get("/meses", obtenerMeses);
+router.post("/crear-mes", crearMes);
+router.get("/pagos/:mes", obtenerPagosPorMes);
+router.post("/pagos", registrarPago);
+router.delete("/pagos/:id", async (req, res) => {
   const PagoLigaMes = require("../models/PagoLigaMes");
   try {
     const result = await PagoLigaMes.findByIdAndDelete(req.params.id);
@@ -51,6 +50,6 @@ router.delete("/pagos/:id", auth, async (req, res) => {
   }
 });
 
-router.put("/valor-diario", auth, actualizarValorDiario);
+router.put("/valor-diario", actualizarValorDiario);
 
 module.exports = router;
