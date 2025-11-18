@@ -20,7 +20,7 @@ const obtenerMeses = async (req, res) => {
   }
 };
 
-// CREAR MES (AHORA SÍ SE GUARDA)
+// CREAR MES → SE GUARDA CON REGISTRO FICTICIO
 const crearMes = async (req, res) => {
   try {
     const { nombre } = req.body;
@@ -35,7 +35,6 @@ const crearMes = async (req, res) => {
       return res.status(400).json({ message: "El mes ya existe" });
     }
 
-    // Registro ficticio para que el mes aparezca
     const registro = new PagoLigaMes({
       nombre: "SYSTEM",
       equipo: "Ligas",
@@ -53,16 +52,16 @@ const crearMes = async (req, res) => {
   }
 };
 
-// OBTENER PAGOS (filtrando el registro ficticio)
+// OBTENER PAGOS POR MES → SIN FILTRAR NADA (EL TOTAL AHORA SÍ FUNCIONA)
 const obtenerPagosPorMes = async (req, res) => {
   try {
     const { mes } = req.params;
     const pagos = await PagoLigaMes.find({ mes }).sort({ createdAt: -1 });
-    
-    // Filtrar el registro "SYSTEM" para que no aparezca en la tabla
-    const pagosReales = pagos.filter(p => p.nombre !== "SYSTEM");
 
-    res.json(pagosReales);
+    // IMPORTANTE: NO FILTRAMOS AQUÍ
+    // El registro "SYSTEM" tiene diasPagados: [] → no afecta el total
+    // El frontend ya sabe ignorarlo en la tabla
+    res.json(pagos);
   } catch (error) {
     console.error("Error al obtener pagos:", error);
     res.status(500).json({ message: "Error al obtener pagos" });
