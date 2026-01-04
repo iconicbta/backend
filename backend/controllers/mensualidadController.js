@@ -7,8 +7,8 @@ const registrarMensualidadCompleta = async (req, res) => {
   try {
     const { clienteId, productoId, cantidad, monto, fecha, metodoPago, mes, año } = req.body;
 
-    // 1. Manejo de Stock (Si no es "OTRO")
-    if (productoId !== "OTRO") {
+    // 1. Manejo de Stock
+    if (productoId && productoId !== "OTRO") {
       const productoDoc = await Producto.findById(productoId);
       if (productoDoc && productoDoc.stock >= cantidad) {
         productoDoc.stock -= cantidad;
@@ -16,10 +16,10 @@ const registrarMensualidadCompleta = async (req, res) => {
       }
     }
 
-    // 2. Crear el registro en el historial general (Colección Pago)
+    // 2. Registro en Historial General (Modelo Pago)
     const nuevoPagoGeneral = new Pago({
       cliente: clienteId,
-      producto: productoId === "OTRO" ? null : productoId, // Manejo de 'Otro'
+      producto: productoId === "OTRO" ? null : productoId,
       cantidad: Number(cantidad),
       monto: Number(monto),
       fecha: new Date(fecha),
@@ -29,7 +29,7 @@ const registrarMensualidadCompleta = async (req, res) => {
     });
     const pagoGuardado = await nuevoPagoGeneral.save();
 
-    // 3. Crear el registro en la planilla de control (Colección PagoMensualidad)
+    // 3. Registro en Planilla Visual (Modelo PagoMensualidad)
     const nuevaMensualidad = new PagoMensualidad({
       cliente: clienteId,
       año: Number(año),
@@ -41,7 +41,7 @@ const registrarMensualidadCompleta = async (req, res) => {
     });
     await nuevaMensualidad.save();
 
-    // 4. Registrar en Contabilidad
+    // 4. Registro en Contabilidad
     const nuevaTransaccion = new Contabilidad({
       tipo: "ingreso",
       monto: Number(monto),
@@ -55,13 +55,8 @@ const registrarMensualidadCompleta = async (req, res) => {
     });
     await nuevaTransaccion.save();
 
-    res.status(201).json({ 
-      mensaje: "Pago y mensualidad registrados con éxito", 
-      pago: pagoGuardado,
-      mensualidad: nuevaMensualidad 
-    });
+    res.status(201).json({ mensaje: "Pago y mensualidad registrados", pago: pagoGuardado });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ mensaje: "Error en el registro", error: error.message });
   }
 };
@@ -72,7 +67,7 @@ const obtenerMensualidadesPorAño = async (req, res) => {
     const datos = await PagoMensualidad.find({ año: Number(año) }).lean();
     res.json(datos);
   } catch (error) {
-    res.status(500).json({ mensaje: "Error al obtener datos", error: error.message });
+    res.status(500).json({ mensaje: "Error al obtener datos" });
   }
 };
 
