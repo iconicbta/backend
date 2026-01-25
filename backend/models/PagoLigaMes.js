@@ -8,7 +8,17 @@ const pagoLigaMesSchema = new mongoose.Schema({
   diasAsistidos: { type: Number, required: true },
   total: { type: Number, required: true },
   valorDiarioUsado: { type: Number },
-  diasPagados: { type: [Number], default: [] }, 
+  diasPagados: {
+  type: [
+    {
+      dia: { type: Number, required: true },
+      registradoEn: { type: Number, required: true },
+      comentario: { type: String, default: "" },
+    }
+  ],
+  default: []
+},
+
   tipoPago: { // 🆕 CAMBIO CLAVE
       type: String, 
       enum: ['Efectivo', 'Nequi', 'SYSTEM'], 
