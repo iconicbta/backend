@@ -1,4 +1,3 @@
-// backend/routes/pagosLigasRoutes.js
 const express = require("express");
 const router = express.Router();
 const {
@@ -52,4 +51,4 @@ router.delete("/pagos/:id", async (req, res) => {
 
 router.put("/valor-diario", actualizarValorDiario);
 
-module.exports = router;
+module.exports = router;   
