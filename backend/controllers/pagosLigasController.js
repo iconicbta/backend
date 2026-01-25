@@ -70,19 +70,78 @@ const obtenerPagosPorMes = async (req, res) => {
   }
 };
 
-// REGISTRAR PAGO (AJUSTADO para incluir tipoPago)
+// REGISTRAR PAGO (con control de día real de ingreso del dinero)
 const registrarPago = async (req, res) => {
-  try {
-    const {
-      nombre,
-      equipo = "Ligas",
-      mes,
-      diasAsistidos,
-      total,
-      valorDiarioUsado,
-      diasPagados = [],
-      tipoPago, // 🆕 CAMBIO: Extraer el nuevo campo tipoPago
-    } = req.body;
+  try {
+    const {
+      nombre,
+      equipo = "Ligas",
+      mes,
+      diasAsistidos,
+      total,
+      valorDiarioUsado,
+      diasPagados = [], // puede venir como [1,2,3]
+      tipoPago,
+    } = req.body;
+
+    // ===============================
+    // VALIDACIONES BÁSICAS
+    // ===============================
+    if (!nombre || !mes || !diasAsistidos || !total || !tipoPago) {
+      return res.status(400).json({
+        message: "Faltan datos requeridos (nombre, mes, diasAsistidos, total, tipoPago)",
+      });
+    }
+
+    if (!["Efectivo", "Nequi"].includes(tipoPago)) {
+      return res.status(400).json({
+        message: "Tipo de pago inválido. Debe ser 'Efectivo' o 'Nequi'.",
+      });
+    }
+
+    // ===============================
+    // DÍA REAL DE INGRESO DEL DINERO
+    // ===============================
+    const hoy = new Date();
+    const diaRegistro = hoy.getDate(); // ej: lunes 10 → 10
+
+    // ===============================
+    // NORMALIZAR diasPagados
+    // ===============================
+    // Convierte [1,2,3] en:
+    // [{dia:1, registradoEn:10}, {dia:2, registradoEn:10}, ...]
+    const diasPagadosNormalizados = diasPagados.map((dia) => ({
+      dia,
+      registradoEn: diaRegistro,
+      comentario:
+        dia === diaRegistro
+          ? "Pago correspondiente al día"
+          : `Pago ingresado el día ${diaRegistro}`,
+    }));
+
+    // ===============================
+    // CREAR REGISTRO
+    // ===============================
+    const nuevoPago = new PagoLigaMes({
+      nombre: nombre.trim().toUpperCase(),
+      equipo,
+      mes,
+      diasAsistidos,
+      total,
+      valorDiarioUsado: valorDiarioUsado || total / diasAsistidos,
+      diasPagados: diasPagadosNormalizados,
+      tipoPago,
+    });
+
+    await nuevoPago.save();
+
+    res.status(201).json(nuevoPago);
+  } catch (error) {
+    console.error("Error al registrar pago:", error);
+    res.status(500).json({ message: "Error al registrar pago" });
+  }
+};
+
 
     // 🆕 CAMBIO: Validar tipoPago como dato requerido
     if (!nombre || !mes || !diasAsistidos || !total || !tipoPago) {
