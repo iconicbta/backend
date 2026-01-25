@@ -19,7 +19,7 @@ const obtenerMeses = async (req, res) => {
   }
 };
 
-// CREAR MES → REGISTRO SYSTEM
+// CREAR MES → SE GUARDA CON REGISTRO FICTICIO (Ajustado para incluir tipoPago: 'SYSTEM')
 const crearMes = async (req, res) => {
   try {
     const { nombre } = req.body;
@@ -28,6 +28,7 @@ const crearMes = async (req, res) => {
     }
 
     const nombreMes = nombre.trim();
+
     const existe = await PagoLigaMes.findOne({ mes: nombreMes });
     if (existe) {
       return res.status(400).json({ message: "El mes ya existe" });
@@ -40,7 +41,7 @@ const crearMes = async (req, res) => {
       diasAsistidos: 0,
       total: 0,
       diasPagados: [],
-      tipoPago: "SYSTEM",
+      tipoPago: 'SYSTEM', // 🆕 CAMBIO: Incluir tipoPago para el registro ficticio
     });
 
     await registro.save();
@@ -51,11 +52,16 @@ const crearMes = async (req, res) => {
   }
 };
 
-// OBTENER PAGOS POR MES
+// OBTENER PAGOS POR MES → SIN FILTRAR NADA
 const obtenerPagosPorMes = async (req, res) => {
   try {
     const { mes } = req.params;
+    // La consulta ahora devuelve también el campo 'tipoPago'
     const pagos = await PagoLigaMes.find({ mes }).sort({ createdAt: -1 });
+
+    // IMPORTANTE: NO FILTRAMOS AQUÍ
+    // El registro "SYSTEM" tiene diasPagados: [] → no afecta el total
+    // El frontend ya sabe ignorarlo en la tabla
     res.json(pagos);
   } catch (error) {
     console.error("Error al obtener pagos:", error);
@@ -63,7 +69,7 @@ const obtenerPagosPorMes = async (req, res) => {
   }
 };
 
-// REGISTRAR PAGO (CON DÍA REAL DE INGRESO)
+// REGISTRAR PAGO (AJUSTADO para incluir tipoPago)
 const registrarPago = async (req, res) => {
   try {
     const {
@@ -74,32 +80,18 @@ const registrarPago = async (req, res) => {
       total,
       valorDiarioUsado,
       diasPagados = [],
-      tipoPago,
+      tipoPago, // 🆕 CAMBIO: Extraer el nuevo campo tipoPago
     } = req.body;
 
+    // 🆕 CAMBIO: Validar tipoPago como dato requerido
     if (!nombre || !mes || !diasAsistidos || !total || !tipoPago) {
-      return res.status(400).json({
-        message: "Faltan datos requeridos (nombre, mes, diasAsistidos, total, tipoPago)",
-      });
+      return res.status(400).json({ message: "Faltan datos requeridos (nombre, mes, diasAsistidos, total, tipoPago)" });
     }
-
-    if (!["Efectivo", "Nequi"].includes(tipoPago)) {
-      return res.status(400).json({
-        message: "Tipo de pago inválido. Debe ser 'Efectivo' o 'Nequi'.",
-      });
+    
+    // Opcional: Validación para asegurar que el valor sea 'Efectivo' o 'Nequi'
+    if (!['Efectivo', 'Nequi'].includes(tipoPago)) {
+        return res.status(400).json({ message: "Tipo de pago inválido. Debe ser 'Efectivo' o 'Nequi'." });
     }
-
-    const hoy = new Date();
-    const diaRegistro = hoy.getDate();
-
-    const diasPagadosNormalizados = diasPagados.map((dia) => ({
-      dia,
-      registradoEn: diaRegistro,
-      comentario:
-        dia === diaRegistro
-          ? "Pago correspondiente al día"
-          : `Pago ingresado el día ${diaRegistro}`,
-    }));
 
     const nuevoPago = new PagoLigaMes({
       nombre: nombre.trim().toUpperCase(),
@@ -108,8 +100,8 @@ const registrarPago = async (req, res) => {
       diasAsistidos,
       total,
       valorDiarioUsado: valorDiarioUsado || total / diasAsistidos,
-      diasPagados: diasPagadosNormalizados,
-      tipoPago,
+      diasPagados,
+      tipoPago: tipoPago, // 🆕 CAMBIO: Guardar el tipo de pago
     });
 
     await nuevoPago.save();
@@ -124,9 +116,7 @@ const registrarPago = async (req, res) => {
 const actualizarValorDiario = async (req, res) => {
   try {
     const { valor } = req.body;
-    if (!valor || valor <= 0) {
-      return res.status(400).json({ message: "Valor inválido" });
-    }
+    if (!valor || valor <= 0) return res.status(400).json({ message: "Valor inválido" });
 
     let config = await ConfiguracionPagoLiga.findOne();
     if (!config) {
@@ -134,8 +124,8 @@ const actualizarValorDiario = async (req, res) => {
     } else {
       config.valorDiario = valor;
     }
-
     await config.save();
+
     res.json({ message: "Valor diario actualizado", valorDiario: config.valorDiario });
   } catch (error) {
     console.error("Error al actualizar valor diario:", error);
@@ -149,4 +139,5 @@ module.exports = {
   obtenerPagosPorMes,
   registrarPago,
   actualizarValorDiario,
-};
+};   
+
