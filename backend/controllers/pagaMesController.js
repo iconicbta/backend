@@ -1,70 +1,57 @@
 const PagaMes = require("../models/pagaMesModels");
 
-// OBTENER MESES DISPONIBLES
-const obtenerMeses = async (req, res) => {
+// Obtener los años registrados (Equivalente a meses en Ligas)
+const obtenerAnios = async (req, res) => {
   try {
-    const meses = await PagaMes.distinct("mes");
-    const mesesOrdenados = meses.sort((a, b) => {
-      const dateA = new Date(a.replace(" de ", " "));
-      const dateB = new Date(b.replace(" de ", " "));
-      return dateB - dateA;
-    });
-    res.json(mesesOrdenados.map(m => ({ _id: m, nombre: m })));
+    const anios = await PagaMes.distinct("anio");
+    res.json(anios.sort((a, b) => b - a).map(a => ({ _id: a, nombre: a })));
   } catch (error) {
-    res.status(500).json({ message: "Error al obtener meses" });
+    res.status(500).json({ message: "Error al obtener años" });
   }
 };
 
-// CREAR NUEVO MES
-const crearMes = async (req, res) => {
+const crearAnio = async (req, res) => {
   try {
-    const { nombre } = req.body;
-    if (!nombre || !nombre.trim()) return res.status(400).json({ message: "Nombre requerido" });
+    const { nombre } = req.body; // El "nombre" aquí es el año (ej: 2026)
+    const existe = await PagaMes.findOne({ anio: nombre, nombre: "SYSTEM" });
+    if (existe) return res.status(400).json({ message: "El año ya existe" });
 
-    const existe = await PagaMes.findOne({ mes: nombre.trim() });
-    if (existe) return res.status(400).json({ message: "El mes ya existe" });
-
-    const registroFicticio = new PagaMes({
+    const registro = new PagaMes({
       nombre: "SYSTEM",
-      mes: nombre.trim(),
-      monto: 0,
-      tipoPago: 'SYSTEM'
+      anio: nombre,
+      total: 0,
+      mesesPagados: [],
+      tipoPago: 'SYSTEM',
     });
 
-    await registroFicticio.save();
-    res.json({ message: "Mes creado", nombre: nombre.trim() });
+    await registro.save();
+    res.json({ message: "Año creado correctamente", nombre });
   } catch (error) {
-    res.status(500).json({ message: "Error al crear mes" });
+    res.status(500).json({ message: "Error al crear año" });
   }
 };
 
-// OBTENER PAGOS
-const obtenerPagosPorMes = async (req, res) => {
+const obtenerPagosPorAnio = async (req, res) => {
   try {
-    const { mes } = req.params;
-    const pagos = await PagaMes.find({ mes }).sort({ createdAt: -1 });
+    const { anio } = req.params;
+    const pagos = await PagaMes.find({ anio }).sort({ createdAt: -1 });
     res.json(pagos);
   } catch (error) {
     res.status(500).json({ message: "Error al obtener pagos" });
   }
 };
 
-// REGISTRAR PAGO MENSUAL
 const registrarPagoMes = async (req, res) => {
   try {
-    const { nombre, mes, monto, tipoPago, comentario, equipo } = req.body;
-
-    if (!nombre || !mes || !monto || !tipoPago) {
-      return res.status(400).json({ message: "Faltan datos requeridos" });
-    }
+    const { nombre, anio, plan, total, mesesPagados, tipoPago } = req.body;
 
     const nuevoPago = new PagaMes({
       nombre: nombre.trim().toUpperCase(),
-      mes,
-      monto,
+      anio,
+      plan,
+      total,
+      mesesPagados,
       tipoPago,
-      comentario: comentario || "",
-      equipo: equipo || "General"
     });
 
     await nuevoPago.save();
@@ -74,9 +61,4 @@ const registrarPagoMes = async (req, res) => {
   }
 };
 
-module.exports = {
-  obtenerMeses,
-  crearMes,
-  obtenerPagosPorMes,
-  registrarPagoMes
-};
+module.exports = { obtenerAnios, crearAnio, obtenerPagosPorAnio, registrarPagoMes };
