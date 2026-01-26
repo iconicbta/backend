@@ -6,13 +6,14 @@ const { protect } = require("./middleware/authMiddleware");
 const app = express();
 
 /* ======================================================
-   🔹 CORS FIX DEFINITIVO PARA RENDER + AXIOS
+    🔹 CORS FIX DEFINITIVO PARA RENDER + AXIOS
 ====================================================== */
 const allowedOrigins = [
   "https://frontendiconic.vercel.app",
   /^https:\/\/frontendiconic.*\.vercel\.app$/,
   "http://localhost:3000",
 ];
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const isAllowed = allowedOrigins.some((pattern) =>
@@ -40,14 +41,14 @@ app.use((req, res, next) => {
 });
 
 /* ======================================================
-   🔹 Seguridad y Body Parser
+    🔹 Seguridad y Body Parser
 ====================================================== */
 app.set("trust proxy", true);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 /* ======================================================
-   🔹 Logger
+    🔹 Logger
 ====================================================== */
 app.use((req, res, next) => {
   console.log(`📩 ${req.method} ${req.url}`);
@@ -55,7 +56,7 @@ app.use((req, res, next) => {
 });
 
 /* ======================================================
-   🔹 Conexión con MongoDB Atlas
+    🔹 Conexión con MongoDB Atlas
 ====================================================== */
 connectDB()
   .then(() => console.log("🟢 MongoDB conectado"))
@@ -65,12 +66,18 @@ connectDB()
   });
 
 /* ======================================================
-   🔹 RUTAS (IMPORTACIÓN)
+    🔹 RUTAS (IMPORTACIÓN)
 ====================================================== */
-// Rutas públicas
+// --- Rutas públicas o de acceso rápido ---
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/pagos-ligas", require("./routes/pagosLigasRoutes"));
-// Rutas protegidas
+
+/** * ✅ NUEVA RUTA IMPLEMENTADA: PAGA MES 
+ * Se coloca aquí para asegurar accesibilidad inmediata desde el frontend
+ */
+app.use("/api/paga-mes", require("./routes/pagaMesRoutes")); 
+
+// --- Rutas protegidas ---
 app.use("/api/especialidades", protect, require("./routes/especialidades"));
 app.use(
   "/api/composicion-corporal",
@@ -95,21 +102,21 @@ app.use(
 );
 
 /* ======================================================
-   🔹 Health Check (Render lo necesita)
+    🔹 Health Check (Render lo necesita)
 ====================================================== */
 app.get("/", (req, res) => {
   res.json({ mensaje: "Backend corriendo correctamente en Render" });
 });
 
 /* ======================================================
-   🔹 Manejo de 404
+    🔹 Manejo de 404
 ====================================================== */
 app.use((req, res) => {
   res.status(404).json({ mensaje: "Ruta no encontrada" });
 });
 
 /* ======================================================
-   🔹 Manejo de Errores Globales
+    🔹 Manejo de Errores Globales
 ====================================================== */
 app.use((err, req, res, next) => {
   console.error("Error global:", err);
@@ -120,7 +127,7 @@ app.use((err, req, res, next) => {
 });
 
 /* ======================================================
-   🔹 Servidor (Render EXIGE 0.0.0.0)
+    🔹 Servidor (Render EXIGE 0.0.0.0)
 ====================================================== */
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () =>
