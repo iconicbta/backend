@@ -72,12 +72,10 @@ connectDB()
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/pagos-ligas", require("./routes/pagosLigasRoutes"));
 
-/** * ✅ NUEVA RUTA IMPLEMENTADA: PAGA MES */
+/** * ✅ PAGA MES */
 app.use("/api/paga-mes", require("./routes/pagaMesRoutes")); 
 
-// 🆕 ===============================
-// 🆕 RUTA REPORTES (RESUMEN GENERAL)
-// 🆕 ===============================
+// 🆕 REPORTES (RESUMEN GENERAL)
 app.use("/api/reportes", protect, require("./routes/reportesRoutes"));
 
 // --- Rutas protegidas ---
