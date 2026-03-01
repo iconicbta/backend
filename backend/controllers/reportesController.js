@@ -10,8 +10,11 @@ const resumenGeneral = async (req, res) => {
       return res.status(400).json({ message: "fechaInicio y fechaFin son requeridos" });
     }
 
-    const start = new Date(fechaInicio);
-    const end = new Date(fechaFin);
+const start = new Date(fechaInicio);
+start.setHours(0, 0, 0, 0);
+
+const end = new Date(fechaFin);
+end.setHours(23, 59, 59, 999);
 
     // =========================
     // 1. PAGOS NORMALES
