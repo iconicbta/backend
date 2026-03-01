@@ -11,11 +11,26 @@ const resumenGeneral = async (req, res) => {
     }
 
     const start = new Date(fechaInicio);
-    const end = new Date(fechaFin);
+    start.setHours(0, 0, 0, 0);
 
-    // ==========================
-    // 1️⃣ PRODUCTOS
-    // ==========================
+    const end = new Date(fechaFin);
+    end.setHours(23, 59, 59, 999);
+
+    // =========================================
+    // UTILIDADES PARA MES Y AÑO
+    // =========================================
+    const monthNames = [
+      "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+      "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+    ];
+
+    const mesNombre = monthNames[start.getMonth()];
+    const anio = start.getFullYear().toString();
+    const mesTextoLigas = `${mesNombre} ${anio}`;
+
+    // =========================================
+    // 1️⃣ PRODUCTOS (por fecha real)
+    // =========================================
     const pagosProductos = await Pago.find({
       estado: "Completado",
       fecha: { $gte: start, $lte: end },
@@ -29,11 +44,12 @@ const resumenGeneral = async (req, res) => {
       if (p.metodoPago === "Nequi") productos.nequi += p.monto || 0;
     });
 
-    // ==========================
-    // 2️⃣ MENSUALIDADES
-    // ==========================
+    // =========================================
+    // 2️⃣ MENSUALIDADES (por año + mes pagado)
+    // =========================================
     const pagosMensualidades = await PagaMes.find({
-      createdAt: { $gte: start, $lte: end },
+      anio: anio,
+      mesesPagados: mesNombre,
       tipoPago: { $ne: "SYSTEM" },
     });
 
@@ -45,11 +61,11 @@ const resumenGeneral = async (req, res) => {
       if (p.tipoPago === "Nequi") mensualidades.nequi += p.total || 0;
     });
 
-    // ==========================
-    // 3️⃣ LIGAS
-    // ==========================
+    // =========================================
+    // 3️⃣ LIGAS (por mes textual)
+    // =========================================
     const pagosLigas = await PagoLigaMes.find({
-      createdAt: { $gte: start, $lte: end },
+      mes: mesTextoLigas,
       tipoPago: { $ne: "SYSTEM" },
     });
 
@@ -61,9 +77,9 @@ const resumenGeneral = async (req, res) => {
       if (p.tipoPago === "Nequi") ligas.nequi += p.total || 0;
     });
 
-    // ==========================
+    // =========================================
     // TOTAL GENERAL
-    // ==========================
+    // =========================================
     const totalGeneral =
       productos.total +
       mensualidades.total +
