@@ -27,6 +27,12 @@ const resumenGeneral = async (req, res) => {
     const mesNombre = monthNames[start.getMonth()];
     const anio = start.getFullYear().toString();
     const mesTextoLigas = `${mesNombre} ${anio}`;
+    console.log("=== DEBUG RESUMEN ===");
+console.log("Fecha inicio:", start);
+console.log("Mes calculado:", mesNombre);
+console.log("Año calculado:", anio);
+console.log("Texto ligas:", mesTextoLigas);
+console.log("=====================");
 
     // =========================================
     // 1️⃣ PRODUCTOS (por fecha real)
