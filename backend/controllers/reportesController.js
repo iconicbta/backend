@@ -10,82 +10,70 @@ const resumenGeneral = async (req, res) => {
       return res.status(400).json({ message: "fechaInicio y fechaFin son requeridos" });
     }
 
-const start = new Date(fechaInicio);
-start.setHours(0, 0, 0, 0);
+    const start = new Date(fechaInicio);
+    start.setHours(0, 0, 0, 0);
 
-const end = new Date(fechaFin);
-end.setHours(23, 59, 59, 999);
-
-    // =========================
-    // 1. PAGOS NORMALES
-    // =========================
-    const pagosAgg = await Pago.aggregate([
-      {
-        $match: {
-          estado: "Completado",
-          fecha: { $gte: start, $lte: end },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$monto" },
-        },
-      },
-    ]);
-
-    const totalPagos = pagosAgg[0]?.total || 0;
+    const end = new Date(fechaFin);
+    end.setHours(23, 59, 59, 999);
 
     // =========================
-    // 2. PAGOS LIGAS
+    // 1️⃣ PRODUCTOS
     // =========================
-    const ligasAgg = await PagoLigaMes.aggregate([
-      {
-        $match: {
-          tipoPago: { $ne: "SYSTEM" },
-          createdAt: { $gte: start, $lte: end },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$total" },
-        },
-      },
-    ]);
+    const pagosProductos = await Pago.find({
+      estado: "Completado",
+      fecha: { $gte: start, $lte: end },
+    });
 
-    const totalLigas = ligasAgg[0]?.total || 0;
+    let productos = { total: 0, efectivo: 0, nequi: 0 };
+
+    pagosProductos.forEach((p) => {
+      productos.total += p.monto || 0;
+      if (p.metodoPago === "Efectivo") productos.efectivo += p.monto || 0;
+      if (p.metodoPago === "Nequi") productos.nequi += p.monto || 0;
+    });
 
     // =========================
-    // 3. PAGOS MES
+    // 2️⃣ LIGAS
     // =========================
-    const pagosMesAgg = await PagaMes.aggregate([
-      {
-        $match: {
-          tipoPago: { $ne: "SYSTEM" },
-          createdAt: { $gte: start, $lte: end },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$total" },
-        },
-      },
-    ]);
+    const pagosLigas = await PagoLigaMes.find({
+      tipoPago: { $ne: "SYSTEM" },
+      createdAt: { $gte: start, $lte: end },
+    });
 
-    const totalPagosMes = pagosMesAgg[0]?.total || 0;
+    let ligas = { total: 0, efectivo: 0, nequi: 0 };
+
+    pagosLigas.forEach((p) => {
+      ligas.total += p.total || 0;
+      if (p.tipoPago === "Efectivo") ligas.efectivo += p.total || 0;
+      if (p.tipoPago === "Nequi") ligas.nequi += p.total || 0;
+    });
 
     // =========================
-    // TOTAL GENERAL
+    // 3️⃣ MENSUALIDADES
     // =========================
-    const total = totalPagos + totalLigas + totalPagosMes;
+    const pagosMensualidades = await PagaMes.find({
+      tipoPago: { $ne: "SYSTEM" },
+      createdAt: { $gte: start, $lte: end },
+    });
+
+    let mensualidades = { total: 0, efectivo: 0, nequi: 0 };
+
+    pagosMensualidades.forEach((p) => {
+      mensualidades.total += p.total || 0;
+      if (p.tipoPago === "Efectivo") mensualidades.efectivo += p.total || 0;
+      if (p.tipoPago === "Nequi") mensualidades.nequi += p.total || 0;
+    });
+
+    const totalGeneral =
+      productos.total +
+      ligas.total +
+      mensualidades.total;
 
     res.json({
-      pagos: totalPagos,
-      ligas: totalLigas,
-      pagosMes: totalPagosMes,
-      total,
+      ligas,
+      mensualidades,
+      productos,
+      totalGeneral,
     });
 
   } catch (error) {
