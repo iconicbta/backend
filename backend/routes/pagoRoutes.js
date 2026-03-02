@@ -256,6 +256,7 @@ router.get(
   }
 );
 // ⚡ NUEVA RUTA: PAGO RÁPIDO (DATOS TOTALMENTE MANUALES)
+// ⚡ NUEVA RUTA: PAGO RÁPIDO (CORREGIDA)
 router.post(
   "/pago-rapido",
   protect,
@@ -264,34 +265,56 @@ router.post(
     try {
       const { clienteManual, productoManual, monto, metodoPago, fecha } = req.body;
 
+      // 1. Crear el objeto del pago
       const nuevoPago = new Pago({
         clienteManual, 
         productoManual, 
         monto: Number(monto),
-        fecha: new Date(fecha),
+        fecha: fecha ? new Date(fecha) : new Date(),
         metodoPago,
-        creadoPor: req.user._id, // Asegúrate que coincida con tu modelo
+        creadoPor: req.user._id,
         estado: "Completado",
         esPagoRapido: true,
+        // IMPORTANTE: Como son manuales, enviamos null a los IDs de relación
+        cliente: null,
+        producto: null,
+        cantidad: 1
       });
 
       const pagoGuardado = await nuevoPago.save();
 
-      const nuevaTransaccion = new Contabilidad({
-        tipo: "ingreso",
-        monto: Number(monto),
-        fecha: new Date(fecha),
-        descripcion: `PAGO RÁPIDO: ${clienteManual}`,
-        categoria: "Pago Rápido",
-        referencia: `PR-${pagoGuardado._id}`,
-        creadoPor: req.user._id,
-      });
-      await nuevaTransaccion.save();
+      // 2. Intentar registrar en contabilidad (en un bloque separado para que no rompa el flujo)
+      try {
+        const nuevaTransaccion = new Contabilidad({
+          tipo: "ingreso",
+          monto: Number(monto),
+          fecha: fecha ? new Date(fecha) : new Date(),
+          descripcion: `PAGO RÁPIDO: ${clienteManual}`,
+          categoria: "Pago Rápido",
+          referencia: `PR-${pagoGuardado._id}`,
+          creadoPor: req.user._id,
+          // Agregamos campos que a veces pide el modelo Contabilidad
+          cuentaDebito: "Caja",
+          cuentaCredito: "Ingresos por servicios"
+        });
+        await nuevaTransaccion.save();
+      } catch (errorContabilidad) {
+        console.error("Pago guardado, pero falló Contabilidad:", errorContabilidad.message);
+        // No enviamos res.status(500) aquí para que el frontend reciba el éxito del pago
+      }
 
-      res.status(201).json({ mensaje: "Pago creado", pago: pagoGuardado });
+      // 3. Respuesta de éxito obligatoria
+      return res.status(201).json({ 
+        mensaje: "Pago registrado con éxito", 
+        pago: pagoGuardado 
+      });
+
     } catch (error) {
-      console.error("ERROR EN BACKEND:", error.message);
-      res.status(500).json({ mensaje: "Error interno", detalle: error.message });
+      console.error("ERROR CRÍTICO EN PAGO RÁPIDO:", error.message);
+      return res.status(500).json({ 
+        mensaje: "Error al registrar el pago", 
+        detalle: error.message 
+      });
     }
   }
 );
@@ -316,6 +339,7 @@ router.get(
 );
 
 module.exports = router;
+
 
 
 
