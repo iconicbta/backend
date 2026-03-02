@@ -199,7 +199,35 @@ router.get(
     }
   }
 );
+// ELIMINAR UN PAGO
+router.delete(
+  "/:id",
+  protect,
+  verificarPermisos(["admin", "recepcionista"]),
+  async (req, res) => {
+    try {
+      const pago = await Pago.findById(req.params.id);
+      if (!pago) return res.status(404).json({ mensaje: "Pago no encontrado" });
 
+      // 1. Devolver el stock al producto
+      if (pago.producto && pago.cantidad) {
+        await Producto.findByIdAndUpdate(pago.producto, {
+          $inc: { stock: pago.cantidad }
+        });
+      }
+
+      // 2. Borrar de contabilidad
+      await Contabilidad.findOneAndDelete({ referencia: `PAGO-${pago._id}` });
+
+      // 3. Borrar el pago
+      await Pago.findByIdAndDelete(req.params.id);
+
+      res.json({ mensaje: "Pago eliminado y stock devuelto" });
+    } catch (error) {
+      res.status(500).json({ mensaje: "Error al eliminar pago", detalle: error.message });
+    }
+  }
+);
 /* ======================================================
    🔹 CONSULTAS ESPECÍFICAS
 ====================================================== */
@@ -249,4 +277,5 @@ router.get(
 );
 
 module.exports = router;
+
 
