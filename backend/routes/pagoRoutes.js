@@ -255,7 +255,47 @@ router.get(
     }
   }
 );
+// ⚡ NUEVA RUTA: PAGO RÁPIDO (DATOS TOTALMENTE MANUALES)
+router.post(
+  "/pago-rapido",
+  protect,
+  verificarPermisos(["admin", "recepcionista"]),
+  async (req, res) => {
+    try {
+      const { clienteManual, productoManual, monto, metodoPago, fecha } = req.body;
 
+      // Creamos el pago usando los campos de texto libre
+      const nuevoPago = new Pago({
+        clienteManual, 
+        productoManual, 
+        monto: Number(monto),
+        fecha: new Date(fecha),
+        metodoPago,
+        creadoPor: req.user._id,
+        estado: "Completado",
+        esPagoRapido: true,
+      });
+
+      const pagoGuardado = await nuevoPago.save();
+
+      // Registro Automático en Contabilidad para el Pago Rápido
+      const nuevaTransaccion = new Contabilidad({
+        tipo: "ingreso",
+        monto: Number(monto),
+        fecha: new Date(fecha),
+        descripcion: `PAGO RÁPIDO: ${clienteManual} - ${productoManual}`,
+        categoria: "Pago Rápido",
+        referencia: `PR-${pagoGuardado._id}`,
+        creadoPor: req.user._id,
+      });
+      await nuevaTransaccion.save();
+
+      res.status(201).json({ mensaje: "Pago rápido creado con éxito", pago: pagoGuardado });
+    } catch (error) {
+      res.status(500).json({ mensaje: "Error al crear pago rápido", detalle: error.message });
+    }
+  }
+);
 /* ======================================================
    🔹 NUEVAS RUTAS: SISTEMA DE MENSUALIDADES (PLANILLA)
 ====================================================== */
@@ -277,5 +317,6 @@ router.get(
 );
 
 module.exports = router;
+
 
 
