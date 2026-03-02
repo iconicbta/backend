@@ -264,35 +264,34 @@ router.post(
     try {
       const { clienteManual, productoManual, monto, metodoPago, fecha } = req.body;
 
-      // Creamos el pago usando los campos de texto libre
       const nuevoPago = new Pago({
         clienteManual, 
         productoManual, 
         monto: Number(monto),
         fecha: new Date(fecha),
         metodoPago,
-        creadoPor: req.user._id,
+        creadoPor: req.user._id, // Asegúrate que coincida con tu modelo
         estado: "Completado",
         esPagoRapido: true,
       });
 
       const pagoGuardado = await nuevoPago.save();
 
-      // Registro Automático en Contabilidad para el Pago Rápido
       const nuevaTransaccion = new Contabilidad({
         tipo: "ingreso",
         monto: Number(monto),
         fecha: new Date(fecha),
-        descripcion: `PAGO RÁPIDO: ${clienteManual} - ${productoManual}`,
+        descripcion: `PAGO RÁPIDO: ${clienteManual}`,
         categoria: "Pago Rápido",
         referencia: `PR-${pagoGuardado._id}`,
         creadoPor: req.user._id,
       });
       await nuevaTransaccion.save();
 
-      res.status(201).json({ mensaje: "Pago rápido creado con éxito", pago: pagoGuardado });
+      res.status(201).json({ mensaje: "Pago creado", pago: pagoGuardado });
     } catch (error) {
-      res.status(500).json({ mensaje: "Error al crear pago rápido", detalle: error.message });
+      console.error("ERROR EN BACKEND:", error.message);
+      res.status(500).json({ mensaje: "Error interno", detalle: error.message });
     }
   }
 );
@@ -317,6 +316,7 @@ router.get(
 );
 
 module.exports = router;
+
 
 
 
