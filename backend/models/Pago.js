@@ -1,19 +1,26 @@
 const mongoose = require("mongoose");
 
 const pagoSchema = new mongoose.Schema({
+  // 🔹 Modificamos estos dos para que NO sean obligatorios (permitir pago rápido)
   cliente: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Cliente",
-    required: true,
+    required: false, 
   },
   producto: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Producto",
-    required: true,
+    required: false,
   },
+  // ⚡ NUEVOS CAMPOS PARA PAGO RÁPIDO
+  clienteManual: { type: String },
+  productoManual: { type: String },
+  esPagoRapido: { type: Boolean, default: false },
+
+  // Resto de los campos (se mantienen igual)
   cantidad: {
     type: Number,
-    required: true,
+    required: false, // Cambiado a false porque en pago rápido no siempre hay stock
   },
   monto: {
     type: Number,
@@ -34,7 +41,7 @@ const pagoSchema = new mongoose.Schema({
   },
   estado: {
     type: String,
-    default: "Completado", // Valor por defecto para nuevos y existentes
+    default: "Completado",
   },
   createdAt: {
     type: Date,
@@ -58,13 +65,4 @@ pagoSchema.pre("findOneAndUpdate", function (next) {
   next();
 });
 
-// Script para actualizar pagos existentes (ejecutar manualmente en MongoDB)
-pagoSchema.post("init", function (doc) {
-  if (!doc.estado) {
-    doc.estado = "Completado";
-    doc.save();
-  }
-});
-
 module.exports = mongoose.model("Pago", pagoSchema);
-
