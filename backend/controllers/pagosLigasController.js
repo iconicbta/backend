@@ -57,12 +57,38 @@ const obtenerPagosPorMes = async (req, res) => {
   try {
     const { mes } = req.params;
     // La consulta ahora devuelve también el campo 'tipoPago'
-    const pagos = await PagoLigaMes.find({ mes }).sort({ createdAt: -1 });
+   const pagos = await PagoLigaMes.find({ mes }).sort({ createdAt: -1 });
 
-    // IMPORTANTE: NO FILTRAMOS AQUÍ
-    // El registro "SYSTEM" tiene diasPagados: [] → no afecta el total
-    // El frontend ya sabe ignorarlo en la tabla
-    res.json(pagos);
+const hoy = new Date().getDate();
+
+const pagosNormalizados = pagos.map(pago => {
+
+const diasNormalizados = (pago.diasPagados || []).map(d => {
+
+if (typeof d === "number") {
+
+let tipo = "HOY";
+
+if (d < hoy) tipo = "ATRASADO";
+if (d > hoy) tipo = "ADELANTADO";
+
+return { dia: d, tipo };
+}
+
+if (typeof d === "object") {
+return d;
+}
+
+});
+
+return {
+...pago.toObject(),
+diasPagados: diasNormalizados
+};
+
+});
+
+res.json(pagosNormalizados);
   } catch (error) {
     console.error("Error al obtener pagos:", error);
     res.status(500).json({ message: "Error al obtener pagos" });
