@@ -61,12 +61,21 @@ console.log("=====================");
 
     let mensualidades = { total: 0, efectivo: 0, nequi: 0 };
 
-    pagosMensualidades.forEach((p) => {
-      mensualidades.total += p.total || 0;
-      if (p.tipoPago === "Efectivo") mensualidades.efectivo += p.total || 0;
-      if (p.tipoPago === "Nequi") mensualidades.nequi += p.total || 0;
-    });
+   pagosMensualidades.forEach((p) => {
 
+  const valorPorMes = (p.total || 0) / (p.mesesPagados.length || 1);
+
+  mensualidades.total += valorPorMes;
+
+  if (p.tipoPago === "Efectivo") {
+    mensualidades.efectivo += valorPorMes;
+  }
+
+  if (p.tipoPago === "Nequi") {
+    mensualidades.nequi += valorPorMes;
+  }
+
+});
     // =========================================
     // 3️⃣ LIGAS (por mes textual)
     // =========================================
