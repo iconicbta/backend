@@ -17,23 +17,30 @@ const resumenGeneral = async (req, res) => {
     end.setHours(23, 59, 59, 999);
 
     // =========================
-    // 1️⃣ PRODUCTOS
-    // =========================
-    const pagosProductos = await Pago.find({
+// 1️⃣ PRODUCTOS
+// =========================
+const pagosProductos = await Pago.find({
   estado: "Completado",
   fecha: { $gte: start, $lte: end },
-  producto: { $exists: true, $ne: null }
+  esPagoRapido: false, // evita pagos rápidos
+  producto: { $exists: true, $ne: null } // solo productos reales
 });
 
-    let productos = { total: 0, efectivo: 0, nequi: 0 };
+let productos = { total: 0, efectivo: 0, nequi: 0 };
 
-    pagosProductos.forEach((p) => {
-      const monto = Number(p.monto) || 0;
-productos.total += monto;
-      if (p.metodoPago === "Efectivo") productos.efectivo += p.monto || 0;
-      if (p.metodoPago === "Nequi") productos.nequi += p.monto || 0;
-    });
+pagosProductos.forEach((p) => {
+  const monto = Number(p.monto) || 0;
 
+  productos.total += monto;
+
+  if (p.metodoPago === "Efectivo") {
+    productos.efectivo += monto;
+  }
+
+  if (p.metodoPago === "Nequi") {
+    productos.nequi += monto;
+  }
+});
     // =========================
     // 2️⃣ LIGAS
     // =========================
