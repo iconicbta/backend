@@ -60,29 +60,35 @@ const resumenGeneral = async (req, res) => {
       else if (p.tipoPago === "Tarjeta") ligas.tarjeta += monto;
     });
 
-  // =========================
-    // 3️⃣ MENSUALIDADES (Copia esto exactamente)
-    // =========================
-    const pagosMensualidades = await PagaMes.find({
-      nombre: { $ne: "SYSTEM" }, // Filtra registros de creación de año
-      tipoPago: { $ne: "SYSTEM" },
-      createdAt: { $gte: start, $lte: end },
-    });
+// =========================
+// 3️⃣ MENSUALIDADES (Sincronizado con Módulo Pagos)
+// =========================
+const nombreMesMap = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-    let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
-    pagosMensualidades.forEach((p) => {
-      const monto = Number(p.total) || 0;
-      mensualidades.total += monto;
+// Obtenemos el nombre del mes basado en la fecha de inicio del filtro
+const mesNombreFiltro = nombreMesMap[start.getMonth()]; 
 
-      // Usamos tipoPago porque es el campo que maneja PagaMes en el backend
-      if (p.tipoPago === "Efectivo") {
-        mensualidades.efectivo += monto;
-      } else if (p.tipoPago === "Transferencia" || p.tipoPago === "Nequi") {
-        mensualidades.transferencia += monto;
-      } else if (p.tipoPago === "Tarjeta") {
-        mensualidades.tarjeta += monto;
-      }
-    });
+const pagosMensualidades = await PagaMes.find({
+  nombre: { $ne: "SYSTEM" },
+  anio: start.getFullYear().toString(),
+  mesesPagados: mesNombreFiltro // 👈 Busca registros que contengan ese mes específico
+});
+
+let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
+
+pagosMensualidades.forEach((p) => {
+  // Dividimos el total por la cantidad de meses para obtener el valor de ESTE mes
+  const valorMes = (Number(p.total) || 0) / (p.mesesPagados.length || 1);
+  
+  mensualidades.total += valorMes;
+
+  if (p.tipoPago === "Efectivo") {
+    mensualidades.efectivo += valorMes;
+  } else if (p.tipoPago === "Nequi" || p.tipoPago === "Transferencia") {
+    mensualidades.transferencia += valorMes;
+  }
+});
 
     const totalGeneral = productos.total + ligas.total + mensualidades.total;
 
