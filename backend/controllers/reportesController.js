@@ -11,77 +11,74 @@ const resumenGeneral = async (req, res) => {
     }
 
     const start = new Date(fechaInicio);
-    start.setHours(0, 0, 0, 0);
-
     const end = new Date(fechaFin);
     end.setHours(23, 59, 59, 999);
 
- 
+    // =========================
+    // 1️⃣ PRODUCTOS Y PAGOS RÁPIDOS
+    // Aplicamos el filtro exacto de pagoController.js
+    // =========================
+    const pagosProductos = await Pago.find({
+      estado: "Completado",
+      fecha: { $gte: start, $lte: end },
+      $or: [
+        { producto: { $exists: true, $ne: null } },
+        { productoManual: { $exists: true, $ne: "" } }
+      ]
+    });
 
-// =========================
-// PRODUCTOS
-// =========================
-const pagos = await Pago.find({
-  estado: "Completado",
-  fecha: {
-    $gte: new Date(start),
-    $lt: new Date(end)
-  }
-});
+    let productos = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
 
-// Agregamos transferencia y tarjeta
-let productos = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
+    pagosProductos.forEach((p) => {
+      const monto = Number(p.monto) || 0;
+      productos.total += monto;
 
-pagos.forEach((p) => {
-  const monto = Number(p.monto) || 0;
-  productos.total += monto;
+      if (p.metodoPago === "Efectivo") {
+        productos.efectivo += monto;
+      } else if (p.metodoPago === "Transferencia") {
+        productos.transferencia += monto;
+      } else if (p.metodoPago === "Tarjeta") {
+        productos.tarjeta += monto;
+      }
+    });
 
-  if (p.metodoPago === "Efectivo") {
-    productos.efectivo += monto;
-  } else if (p.metodoPago === "Transferencia") {
-    productos.transferencia += monto;
-  } else if (p.metodoPago === "Tarjeta") {
-    productos.tarjeta += monto;
-  }
-});
-
-// NOTA: Si Ligas y Mensualidades también usan estos métodos, 
-// deberías aplicar la misma lógica de "else if" para ellos.    // =========================
-    // 2️⃣ LIGAS
+    // =========================
+    // 2️⃣ LIGAS (Corregido con Transferencia y Tarjeta)
     // =========================
     const pagosLigas = await PagoLigaMes.find({
       tipoPago: { $ne: "SYSTEM" },
       createdAt: { $gte: start, $lte: end },
     });
 
-    let ligas = { total: 0, efectivo: 0, nequi: 0 };
+    let ligas = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
 
     pagosLigas.forEach((p) => {
-      ligas.total += p.total || 0;
-      if (p.tipoPago === "Efectivo") ligas.efectivo += p.total || 0;
-      if (p.tipoPago === "Nequi") ligas.nequi += p.total || 0;
+      const monto = Number(p.total) || 0;
+      ligas.total += monto;
+      if (p.tipoPago === "Efectivo") ligas.efectivo += monto;
+      else if (p.tipoPago === "Transferencia" || p.tipoPago === "Nequi") ligas.transferencia += monto;
+      else if (p.tipoPago === "Tarjeta") ligas.tarjeta += monto;
     });
 
     // =========================
-    // 3️⃣ MENSUALIDADES
+    // 3️⃣ MENSUALIDADES (Corregido con Transferencia y Tarjeta)
     // =========================
     const pagosMensualidades = await PagaMes.find({
       tipoPago: { $ne: "SYSTEM" },
       createdAt: { $gte: start, $lte: end },
     });
 
-    let mensualidades = { total: 0, efectivo: 0, nequi: 0 };
+    let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
 
     pagosMensualidades.forEach((p) => {
-      mensualidades.total += p.total || 0;
-      if (p.tipoPago === "Efectivo") mensualidades.efectivo += p.total || 0;
-      if (p.tipoPago === "Nequi") mensualidades.nequi += p.total || 0;
+      const monto = Number(p.total) || 0;
+      mensualidades.total += monto;
+      if (p.tipoPago === "Efectivo") mensualidades.efectivo += monto;
+      else if (p.tipoPago === "Transferencia" || p.tipoPago === "Nequi") mensualidades.transferencia += monto;
+      else if (p.tipoPago === "Tarjeta") mensualidades.tarjeta += monto;
     });
 
-    const totalGeneral =
-      productos.total +
-      ligas.total +
-      mensualidades.total;
+    const totalGeneral = productos.total + ligas.total + mensualidades.total;
 
     res.json({
       ligas,
