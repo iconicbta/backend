@@ -22,10 +22,7 @@ const resumenGeneral = async (req, res) => {
     const pagosProductos = await Pago.find({
   estado: "Completado",
   fecha: { $gte: start, $lte: end },
-  $or: [
-    { producto: { $exists: true, $ne: null } },
-    { productoManual: { $exists: true, $ne: "" } }
-  ]
+  producto: { $exists: true, $ne: null }
 });
 
     let productos = { total: 0, efectivo: 0, nequi: 0 };
