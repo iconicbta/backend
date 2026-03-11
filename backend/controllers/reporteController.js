@@ -38,9 +38,13 @@ console.log("=====================");
     // 1️⃣ PRODUCTOS (por fecha real)
     // =========================================
     const pagosProductos = await Pago.find({
-      estado: "Completado",
-      fecha: { $gte: start, $lte: end },
-    });
+  estado: "Completado",
+  fecha: { $gte: start, $lte: end },
+  $or: [
+    { producto: { $exists: true, $ne: null } },
+    { productoManual: { $exists: true, $ne: "" } }
+  ]
+});
 
     let productos = { total: 0, efectivo: 0, nequi: 0 };
 
