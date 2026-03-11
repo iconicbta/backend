@@ -60,22 +60,28 @@ const resumenGeneral = async (req, res) => {
       else if (p.tipoPago === "Tarjeta") ligas.tarjeta += monto;
     });
 
-    // =========================
-    // 3️⃣ MENSUALIDADES (Corregido con Transferencia y Tarjeta)
+  // =========================
+    // 3️⃣ MENSUALIDADES (Copia esto exactamente)
     // =========================
     const pagosMensualidades = await PagaMes.find({
+      nombre: { $ne: "SYSTEM" }, // Filtra registros de creación de año
       tipoPago: { $ne: "SYSTEM" },
       createdAt: { $gte: start, $lte: end },
     });
 
     let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
-
     pagosMensualidades.forEach((p) => {
       const monto = Number(p.total) || 0;
       mensualidades.total += monto;
-      if (p.tipoPago === "Efectivo") mensualidades.efectivo += monto;
-      else if (p.tipoPago === "Transferencia" || p.tipoPago === "Nequi") mensualidades.transferencia += monto;
-      else if (p.tipoPago === "Tarjeta") mensualidades.tarjeta += monto;
+
+      // Usamos tipoPago porque es el campo que maneja PagaMes en el backend
+      if (p.tipoPago === "Efectivo") {
+        mensualidades.efectivo += monto;
+      } else if (p.tipoPago === "Transferencia" || p.tipoPago === "Nequi") {
+        mensualidades.transferencia += monto;
+      } else if (p.tipoPago === "Tarjeta") {
+        mensualidades.tarjeta += monto;
+      }
     });
 
     const totalGeneral = productos.total + ligas.total + mensualidades.total;
