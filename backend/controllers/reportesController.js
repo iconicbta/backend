@@ -16,8 +16,10 @@ const resumenGeneral = async (req, res) => {
     const end = new Date(fechaFin);
     end.setHours(23, 59, 59, 999);
 
- // =========================
-// PRODUCTOS (MISMA LOGICA QUE /pagos)
+ 
+
+// =========================
+// PRODUCTOS
 // =========================
 const pagos = await Pago.find({
   estado: "Completado",
@@ -26,26 +28,25 @@ const pagos = await Pago.find({
     $lt: new Date(end)
   }
 });
-let productos = { total: 0, efectivo: 0, nequi: 0 };
+
+// Agregamos transferencia y tarjeta
+let productos = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
 
 pagos.forEach((p) => {
   const monto = Number(p.monto) || 0;
-
   productos.total += monto;
 
   if (p.metodoPago === "Efectivo") {
     productos.efectivo += monto;
-  }
-
-  if (p.metodoPago === "Transferencia") {
-    productos.nequi += monto;
-  }
-
-  if (p.metodoPago === "Tarjeta") {
-    productos.nequi += monto;
+  } else if (p.metodoPago === "Transferencia") {
+    productos.transferencia += monto;
+  } else if (p.metodoPago === "Tarjeta") {
+    productos.tarjeta += monto;
   }
 });
-    // =========================
+
+// NOTA: Si Ligas y Mensualidades también usan estos métodos, 
+// deberías aplicar la misma lógica de "else if" para ellos.    // =========================
     // 2️⃣ LIGAS
     // =========================
     const pagosLigas = await PagoLigaMes.find({
