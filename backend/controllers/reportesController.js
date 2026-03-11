@@ -21,9 +21,11 @@ const resumenGeneral = async (req, res) => {
 // =========================
 const pagos = await Pago.find({
   estado: "Completado",
-  fecha: { $gte: start, $lte: end }
+  fecha: {
+    $gte: new Date(start),
+    $lt: new Date(end)
+  }
 });
-
 let productos = { total: 0, efectivo: 0, nequi: 0 };
 
 pagos.forEach((p) => {
