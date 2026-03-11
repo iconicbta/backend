@@ -21,11 +21,8 @@ const resumenGeneral = async (req, res) => {
 // =========================
 const pagosProductos = await Pago.find({
   estado: "Completado",
-  fecha: { $gte: start, $lte: end },
-  esPagoRapido: false, // evita pagos rápidos
-  producto: { $exists: true, $ne: null } // solo productos reales
+  fecha: { $gte: start, $lte: end }
 });
-
 let productos = { total: 0, efectivo: 0, nequi: 0 };
 
 pagosProductos.forEach((p) => {
@@ -35,9 +32,7 @@ pagosProductos.forEach((p) => {
 
   if (p.metodoPago === "Efectivo") {
     productos.efectivo += monto;
-  }
-
-  if (p.metodoPago === "Nequi") {
+  } else {
     productos.nequi += monto;
   }
 });
