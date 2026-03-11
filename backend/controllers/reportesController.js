@@ -16,23 +16,30 @@ const resumenGeneral = async (req, res) => {
     const end = new Date(fechaFin);
     end.setHours(23, 59, 59, 999);
 
-    // =========================
-// 1️⃣ PRODUCTOS
+ // =========================
+// PRODUCTOS (MISMA LOGICA QUE /pagos)
 // =========================
-const pagosProductos = await Pago.find({
+const pagos = await Pago.find({
   estado: "Completado",
   fecha: { $gte: start, $lte: end }
 });
+
 let productos = { total: 0, efectivo: 0, nequi: 0 };
 
-pagosProductos.forEach((p) => {
+pagos.forEach((p) => {
   const monto = Number(p.monto) || 0;
 
   productos.total += monto;
 
   if (p.metodoPago === "Efectivo") {
     productos.efectivo += monto;
-  } else {
+  }
+
+  if (p.metodoPago === "Transferencia") {
+    productos.nequi += monto;
+  }
+
+  if (p.metodoPago === "Tarjeta") {
     productos.nequi += monto;
   }
 });
