@@ -42,23 +42,34 @@ const resumenGeneral = async (req, res) => {
       }
     });
 
-   // =========================
-    // 2️⃣ LIGAS (Filtrado por rango exacto: día, semana o mes)
+  // =========================
+    // 2️⃣ LIGAS (Corregido para filtrar por día/semana)
     // =========================
     const pagosLigas = await PagoLigaMes.find({
       tipoPago: { $ne: "SYSTEM" },
-      createdAt: { $gte: start, $lte: end }, // 👈 Usa el rango dinámico
+      // Buscamos en createdAt O en fecha, para asegurar que el filtro de día funcione
+      $or: [
+        { createdAt: { $gte: start, $lte: end } },
+        { fecha: { $gte: start, $lte: end } }
+      ]
     });
 
     let ligas = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
     pagosLigas.forEach((p) => {
       const monto = Number(p.total) || 0;
       ligas.total += monto;
-      if (p.tipoPago === "Efectivo") ligas.efectivo += monto;
-      else if (p.tipoPago === "Transferencia" || p.tipoPago === "Nequi") ligas.transferencia += monto;
-      else if (p.tipoPago === "Tarjeta") ligas.tarjeta += monto;
-    });
 
+      // Normalizamos el string a minúsculas/mayúsculas para que no falle por una letra
+      const metodo = (p.tipoPago || "").toLowerCase();
+
+      if (metodo === "efectivo") {
+        ligas.efectivo += monto;
+      } else if (metodo === "transferencia" || metodo === "nequi") {
+        ligas.transferencia += monto;
+      } else if (metodo === "tarjeta") {
+        ligas.tarjeta += monto;
+      }
+    });
     // =========================
     // 3️⃣ MENSUALIDADES (Filtrado por rango exacto: día, semana o mes)
     // =========================
