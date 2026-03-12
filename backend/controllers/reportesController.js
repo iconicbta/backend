@@ -42,16 +42,15 @@ const resumenGeneral = async (req, res) => {
       }
     });
 
-    // =========================
-    // 2️⃣ LIGAS (Corregido con Transferencia y Tarjeta)
+   // =========================
+    // 2️⃣ LIGAS (Filtrado por rango exacto: día, semana o mes)
     // =========================
     const pagosLigas = await PagoLigaMes.find({
       tipoPago: { $ne: "SYSTEM" },
-      createdAt: { $gte: start, $lte: end },
+      createdAt: { $gte: start, $lte: end }, // 👈 Usa el rango dinámico
     });
 
     let ligas = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
-
     pagosLigas.forEach((p) => {
       const monto = Number(p.total) || 0;
       ligas.total += monto;
@@ -60,35 +59,30 @@ const resumenGeneral = async (req, res) => {
       else if (p.tipoPago === "Tarjeta") ligas.tarjeta += monto;
     });
 
-// =========================
-// 3️⃣ MENSUALIDADES (Sincronizado con Módulo Pagos)
-// =========================
-const nombreMesMap = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
-                      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    // =========================
+    // 3️⃣ MENSUALIDADES (Filtrado por rango exacto: día, semana o mes)
+    // =========================
+    const pagosMensualidades = await PagaMes.find({
+      nombre: { $ne: "SYSTEM" },
+      tipoPago: { $ne: "SYSTEM" },
+      createdAt: { $gte: start, $lte: end }, // 👈 Cambiado de 'mesesPagados' a 'createdAt'
+    });
 
-// Obtenemos el nombre del mes basado en la fecha de inicio del filtro
-const mesNombreFiltro = nombreMesMap[start.getMonth()]; 
+    let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
+    pagosMensualidades.forEach((p) => {
+      // Nota: Aquí sumamos el total del registro porque es un pago realizado 
+      // físicamente en el rango de fechas seleccionado (día/semana).
+      const monto = Number(p.total) || 0;
+      mensualidades.total += monto;
 
-const pagosMensualidades = await PagaMes.find({
-  nombre: { $ne: "SYSTEM" },
-  anio: start.getFullYear().toString(),
-  mesesPagados: mesNombreFiltro // 👈 Busca registros que contengan ese mes específico
-});
-
-let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
-
-pagosMensualidades.forEach((p) => {
-  // Dividimos el total por la cantidad de meses para obtener el valor de ESTE mes
-  const valorMes = (Number(p.total) || 0) / (p.mesesPagados.length || 1);
-  
-  mensualidades.total += valorMes;
-
-  if (p.tipoPago === "Efectivo") {
-    mensualidades.efectivo += valorMes;
-  } else if (p.tipoPago === "Nequi" || p.tipoPago === "Transferencia") {
-    mensualidades.transferencia += valorMes;
-  }
-});
+      if (p.tipoPago === "Efectivo") {
+        mensualidades.efectivo += monto;
+      } else if (p.tipoPago === "Nequi" || p.tipoPago === "Transferencia") {
+        mensualidades.transferencia += monto;
+      } else if (p.tipoPago === "Tarjeta") {
+        mensualidades.tarjeta += monto;
+      }
+    });
 
     const totalGeneral = productos.total + ligas.total + mensualidades.total;
 
