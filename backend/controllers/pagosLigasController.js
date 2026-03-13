@@ -125,7 +125,7 @@ const registrarPago = async (req, res) => {
       mes,
       diasAsistidos,
       total,
-      valorDiarioUsado: valorDiarioUsado || total / diasAsistidos,
+      valorDiarioUsado: valorDiarioUsado || (diasAsistidos > 0 ? total / diasAsistidos : total),
       diasPagados,
       tipoPago: tipoPago, // 🆕 CAMBIO: Guardar el tipo de pago
     });
