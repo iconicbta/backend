@@ -181,6 +181,33 @@ router.post(
     }
   }
 );
+// --- COPIAR DESDE AQUÍ ---
+// ACTUALIZAR PAGO (Ruta necesaria para el Frontend)
+router.put(
+  "/actualizar/:id",
+  protect,
+  verificarPermisos(["admin", "recepcionista"]),
+  async (req, res) => {
+    try {
+      const pagoActualizado = await Pago.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true, runValidators: true }
+      );
+
+      if (!pagoActualizado) {
+        return res.status(404).json({ mensaje: "Pago no encontrado" });
+      }
+
+      res.json({
+        mensaje: "Pago actualizado correctamente",
+        pago: pagoActualizado,
+      });
+    } catch (error) {
+      res.status(500).json({ mensaje: "Error al actualizar pago", detalle: error.message });
+    }
+  }
+);
 
 // Obtener por ID
 router.get(
