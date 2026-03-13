@@ -50,5 +50,13 @@ router.delete("/pagos/:id", async (req, res) => {
 });
 
 router.put("/valor-diario", actualizarValorDiario);
-
+router.put("/pagos/:id", async (req, res) => {
+  const PagoLigaMes = require("../models/PagoLigaMes");
+  try {
+    const actualizado = await PagoLigaMes.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(actualizado);
+  } catch (error) {
+    res.status(500).json({ message: "Error al actualizar" });
+  }
+});
 module.exports = router;   
