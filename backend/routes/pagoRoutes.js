@@ -119,8 +119,11 @@ router.get(
       const query = { estado: "Completado" };
       if (req.query.fechaInicio && req.query.fechaFin) {
 
-  const inicio = new Date(`${req.query.fechaInicio}T00:00:00`);
-  const fin = new Date(`${req.query.fechaFin}T23:59:59`);
+  const inicio = new Date(req.query.fechaInicio);
+const fin = new Date(req.query.fechaFin);
+
+inicio.setHours(0,0,0,0);
+fin.setHours(23,59,59,999);
 
   query.fecha = {
     $gte: inicio,
