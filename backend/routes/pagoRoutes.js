@@ -297,7 +297,7 @@ router.post(
         clienteManual, 
         productoManual, 
         monto: Number(monto),
-        fecha: fecha ? new Date(fecha) : new Date(),
+        fecha: fecha ? new Date(`${fecha}T12:00:00`) : new Date(),
         metodoPago,
         creadoPor: req.user._id,
         estado: "Completado",
