@@ -24,10 +24,13 @@ router.get(
       const query = { estado: "Completado" };
 
       if (fechaInicio && fechaFin) {
-        query.fecha = {
-          $gte: new Date(fechaInicio),
-          $lte: new Date(fechaFin),
-        };
+       const inicio = new Date(`${fechaInicio}T00:00:00`);
+const fin = new Date(`${fechaFin}T23:59:59`);
+
+query.fecha = {
+  $gte: inicio,
+  $lte: fin,
+};
       }
 
       let pagos = await Pago.find(query)
@@ -115,8 +118,15 @@ router.get(
     try {
       const query = { estado: "Completado" };
       if (req.query.fechaInicio && req.query.fechaFin) {
-        query.fecha = { $gte: new Date(req.query.fechaInicio), $lte: new Date(req.query.fechaFin) };
-      }
+
+  const inicio = new Date(`${req.query.fechaInicio}T00:00:00`);
+  const fin = new Date(`${req.query.fechaFin}T23:59:59`);
+
+  query.fecha = {
+    $gte: inicio,
+    $lte: fin
+  };
+}
       const pagos = await Pago.find(query)
         .populate("cliente", "nombre apellido")
         .populate("producto", "nombre precio")
