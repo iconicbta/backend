@@ -15,32 +15,23 @@ const resumenGeneral = async (req, res) => {
     end.setHours(23, 59, 59, 999);
 
     // =========================
-    // 1️⃣ PRODUCTOS Y PAGOS RÁPIDOS
-    // Aplicamos el filtro exacto de pagoController.js
-    // =========================
-    const pagosProductos = await Pago.find({
-      estado: "Completado",
-      fecha: { $gte: start, $lte: end },
-      $or: [
-        { producto: { $exists: true, $ne: null } },
-        { productoManual: { $exists: true, $ne: "" } }
-      ]
-    });
+// 1️⃣ PRODUCTOS
+// =========================
+const pagosProductos = await Pago.find({
+  estado: "Completado",
+  fecha: { $gte: start, $lte: end }
+});
 
-    let productos = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
+let productos = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
 
-    pagosProductos.forEach((p) => {
-      const monto = Number(p.monto) || 0;
-      productos.total += monto;
+pagosProductos.forEach((p) => {
+  const monto = Number(p.monto) || 0;
+  productos.total += monto;
 
-      if (p.metodoPago === "Efectivo") {
-        productos.efectivo += monto;
-      } else if (p.metodoPago === "Transferencia") {
-        productos.transferencia += monto;
-      } else if (p.metodoPago === "Tarjeta") {
-        productos.tarjeta += monto;
-      }
-    });
+  if (p.metodoPago === "Efectivo") productos.efectivo += monto;
+  else if (p.metodoPago === "Transferencia" || p.metodoPago === "Nequi") productos.transferencia += monto;
+  else if (p.metodoPago === "Tarjeta") productos.tarjeta += monto;
+});
 
   // =========================
     // 2️⃣ LIGAS (Corregido para filtrar por día/semana/mes)
@@ -63,16 +54,13 @@ const resumenGeneral = async (req, res) => {
       else if (metodo === "transferencia" || metodo === "nequi") ligas.transferencia += monto;
       else if (metodo === "tarjeta") ligas.tarjeta += monto;
     });
-    // =========================
+ // =========================
 // 3️⃣ MENSUALIDADES
 // =========================
-const mesNombre = start.toLocaleString("es-ES", { month: "long" });
-const mesCapitalizado = mesNombre.charAt(0).toUpperCase() + mesNombre.slice(1);
-
 const pagosMensualidades = await PagaMes.find({
   nombre: { $ne: "SYSTEM" },
   tipoPago: { $ne: "SYSTEM" },
-  mesesPagados: mesCapitalizado
+  createdAt: { $gte: start, $lte: end }
 });
 
 let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
