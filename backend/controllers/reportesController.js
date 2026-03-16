@@ -37,12 +37,9 @@ pagosProductos.forEach((p) => {
     // 2️⃣ LIGAS (Corregido para filtrar por día/semana/mes)
     // =========================
     const pagosLigas = await PagoLigaMes.find({
-      tipoPago: { $ne: "SYSTEM" },
-      $or: [
-        { createdAt: { $gte: start, $lte: end } },
-        { fecha: { $gte: start, $lte: end } }
-      ]
-    });
+  tipoPago: { $ne: "SYSTEM" },
+  createdAt: { $gte: start, $lte: end }
+});
 
     let ligas = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
     pagosLigas.forEach((p) => {
@@ -109,9 +106,9 @@ const cierreDiario = async (req, res) => {
 
     // PRODUCTOS
     const pagosProductos = await Pago.find({
-      estado: "Completado",
-      fecha: { $gte: start, $lte: end }
-    });
+  estado:"Completado",
+  createdAt:{ $gte:start,$lte:end }
+});
 
     let productos = { total:0, efectivo:0, transferencia:0, tarjeta:0 };
 
