@@ -14,22 +14,19 @@ const resumenGeneral = async (req, res) => {
     const end = new Date(fechaFin);
     end.setHours(23, 59, 59, 999);
 
-   // =========================
-// 1️⃣ PRODUCTOS
-// =========================
+   // 1️⃣ PRODUCTOS
 const pagosProductos = await Pago.find({
   estado: "Completado",
-  createdAt: { $gte: start, $lte: end } // Cambiamos 'fecha' por 'createdAt'
+  createdAt: { $gte: start, $lte: end } // Usa createdAt para dinero real
 });
 
 let productos = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
 
 pagosProductos.forEach((p) => {
   const monto = Number(p.monto) || 0;
-  const metodo = (p.metodoPago || "").toLowerCase().trim(); // Estandarizamos
-  
   productos.total += monto;
-
+  
+  const metodo = (p.metodoPago || "").toLowerCase().trim();
   if (metodo === "efectivo") productos.efectivo += monto;
   else if (metodo === "transferencia" || metodo === "nequi") productos.transferencia += monto;
   else if (metodo === "tarjeta") productos.tarjeta += monto;
@@ -53,23 +50,20 @@ pagosProductos.forEach((p) => {
       else if (metodo === "transferencia" || metodo === "nequi") ligas.transferencia += monto;
       else if (metodo === "tarjeta") ligas.tarjeta += monto;
     });
-// =========================
 // 3️⃣ MENSUALIDADES
-// =========================
 const pagosMensualidades = await PagaMes.find({
   nombre: { $ne: "SYSTEM" },
   tipoPago: { $ne: "SYSTEM" },
-  createdAt: { $gte: start, $lte: end } // Filtro por dinero real ingresado
+  createdAt: { $gte: start, $lte: end }
 });
 
 let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
 
 pagosMensualidades.forEach((p) => {
   const monto = Number(p.total) || 0;
-  const metodo = (p.tipoPago || "").toLowerCase().trim();
-
   mensualidades.total += monto;
 
+  const metodo = (p.tipoPago || "").toLowerCase().trim();
   if (metodo === "efectivo") mensualidades.efectivo += monto;
   else if (metodo === "nequi" || metodo === "transferencia") mensualidades.transferencia += monto;
   else if (metodo === "tarjeta") mensualidades.tarjeta += monto;
