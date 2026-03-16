@@ -3,6 +3,6 @@ const router = express.Router();
 const { resumenGeneral } = require("../controllers/reportesController");
 
 router.get("/resumen-general", resumenGeneral);
-
+router.get("/cierre-diario", cierreDiario);
 
 module.exports = router;
