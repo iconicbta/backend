@@ -64,29 +64,31 @@ const resumenGeneral = async (req, res) => {
       else if (metodo === "tarjeta") ligas.tarjeta += monto;
     });
     // =========================
-    // 3️⃣ MENSUALIDADES (Filtrado por rango exacto: día, semana o mes)
-    // =========================
-    const pagosMensualidades = await PagaMes.find({
-      nombre: { $ne: "SYSTEM" },
-      tipoPago: { $ne: "SYSTEM" },
-      createdAt: { $gte: start, $lte: end }, // 👈 Cambiado de 'mesesPagados' a 'createdAt'
-    });
+// 3️⃣ MENSUALIDADES
+// =========================
+const mesNombre = start.toLocaleString("es-ES", { month: "long" });
+const mesCapitalizado = mesNombre.charAt(0).toUpperCase() + mesNombre.slice(1);
 
-    let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
-    pagosMensualidades.forEach((p) => {
-      // Nota: Aquí sumamos el total del registro porque es un pago realizado 
-      // físicamente en el rango de fechas seleccionado (día/semana).
-      const monto = Number(p.total) || 0;
-      mensualidades.total += monto;
+const pagosMensualidades = await PagaMes.find({
+  nombre: { $ne: "SYSTEM" },
+  tipoPago: { $ne: "SYSTEM" },
+  mesesPagados: mesCapitalizado
+});
 
-      if (p.tipoPago === "Efectivo") {
-        mensualidades.efectivo += monto;
-      } else if (p.tipoPago === "Nequi" || p.tipoPago === "Transferencia") {
-        mensualidades.transferencia += monto;
-      } else if (p.tipoPago === "Tarjeta") {
-        mensualidades.tarjeta += monto;
-      }
-    });
+let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
+
+pagosMensualidades.forEach((p) => {
+  const monto = Number(p.total) || 0;
+  mensualidades.total += monto;
+
+  if (p.tipoPago === "Efectivo") {
+    mensualidades.efectivo += monto;
+  } else if (p.tipoPago === "Nequi" || p.tipoPago === "Transferencia") {
+    mensualidades.transferencia += monto;
+  } else if (p.tipoPago === "Tarjeta") {
+    mensualidades.tarjeta += monto;
+  }
+});
 
     const totalGeneral = productos.total + ligas.total + mensualidades.total;
 
