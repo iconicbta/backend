@@ -113,6 +113,7 @@ router.get(
 ====================================================== */
 
 // Listar todos los pagos
+// Listar todos los pagos (BLOQUE CORREGIDO)
 router.get(
   "/",
   protect,
@@ -120,33 +121,36 @@ router.get(
   async (req, res) => {
     try {
       const query = { estado: "Completado" };
+      
       if (req.query.fechaInicio && req.query.fechaFin) {
+        const inicio = new Date(req.query.fechaInicio);
+        const fin = new Date(req.query.fechaFin);
 
-  const inicio = new Date(req.query.fechaInicio);
-const fin = new Date(req.query.fechaFin);
+        // Ajuste limpio de horas para evitar que se pierdan pagos o se sumen de otros días
+        inicio.setHours(0, 0, 0, 0);
+        fin.setHours(23, 59, 59, 999);
 
-inicio.setUTCHours(5,0,0,0);
-fin.setUTCHours(28,59,59,999);
+        query.fecha = {
+          $gte: inicio,
+          $lte: fin
+        };
+      }
 
-  query.fecha = {
-    $gte: inicio,
-    $lte: fin
-  };
-}
       const pagos = await Pago.find(query)
         .populate("cliente", "nombre apellido")
         .populate("producto", "nombre precio")
         .populate("creadoPor", "nombre")
         .lean();
 
+      // El servidor suma los montos encontrados
       const total = pagos.reduce((sum, pago) => sum + (pago.monto || 0), 0);
+      
       res.json({ pagos, total });
     } catch (error) {
       res.status(500).json({ mensaje: "Error al listar pagos", detalle: error.message });
     }
   }
 );
-
 // Crear un pago nuevo (con Stock y Contabilidad)
 router.post(
   "/",
