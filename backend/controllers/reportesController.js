@@ -14,23 +14,25 @@ const resumenGeneral = async (req, res) => {
     const end = new Date(fechaFin);
     end.setHours(23, 59, 59, 999);
 
-    // =========================
+   // =========================
 // 1️⃣ PRODUCTOS
 // =========================
 const pagosProductos = await Pago.find({
   estado: "Completado",
-  createdAt: { $gte: start, $lte: end }
+  createdAt: { $gte: start, $lte: end } // Cambiamos 'fecha' por 'createdAt'
 });
 
 let productos = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
 
 pagosProductos.forEach((p) => {
   const monto = Number(p.monto) || 0;
+  const metodo = (p.metodoPago || "").toLowerCase().trim(); // Estandarizamos
+  
   productos.total += monto;
 
-  if (p.metodoPago === "Efectivo") productos.efectivo += monto;
-  else if (p.metodoPago === "Transferencia" || p.metodoPago === "Nequi") productos.transferencia += monto;
-  else if (p.metodoPago === "Tarjeta") productos.tarjeta += monto;
+  if (metodo === "efectivo") productos.efectivo += monto;
+  else if (metodo === "transferencia" || metodo === "nequi") productos.transferencia += monto;
+  else if (metodo === "tarjeta") productos.tarjeta += monto;
 });
 
   // =========================
@@ -56,25 +58,21 @@ pagosProductos.forEach((p) => {
 // =========================
 const pagosMensualidades = await PagaMes.find({
   nombre: { $ne: "SYSTEM" },
-  tipoPago: { $ne: "SYSTEM" }, // Filtro clave para dinero real
-  createdAt: { $gte: start, $lte: end }
+  tipoPago: { $ne: "SYSTEM" },
+  createdAt: { $gte: start, $lte: end } // Filtro por dinero real ingresado
 });
 
 let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
 
 pagosMensualidades.forEach((p) => {
   const monto = Number(p.total) || 0;
-  const metodo = (p.tipoPago || "").toLowerCase().trim(); // Estandariza el texto
+  const metodo = (p.tipoPago || "").toLowerCase().trim();
 
   mensualidades.total += monto;
 
-  if (metodo === "efectivo") {
-    mensualidades.efectivo += monto;
-  } else if (metodo === "nequi" || metodo === "transferencia") {
-    mensualidades.transferencia += monto;
-  } else if (metodo === "tarjeta") {
-    mensualidades.tarjeta += monto;
-  }
+  if (metodo === "efectivo") mensualidades.efectivo += monto;
+  else if (metodo === "nequi" || metodo === "transferencia") mensualidades.transferencia += monto;
+  else if (metodo === "tarjeta") mensualidades.tarjeta += monto;
 });
 
     const totalGeneral = productos.total + ligas.total + mensualidades.total;
