@@ -51,12 +51,12 @@ pagosProductos.forEach((p) => {
       else if (metodo === "transferencia" || metodo === "nequi") ligas.transferencia += monto;
       else if (metodo === "tarjeta") ligas.tarjeta += monto;
     });
- // =========================
+// =========================
 // 3️⃣ MENSUALIDADES
 // =========================
 const pagosMensualidades = await PagaMes.find({
   nombre: { $ne: "SYSTEM" },
-  tipoPago: { $ne: "SYSTEM" },
+  tipoPago: { $ne: "SYSTEM" }, // Filtro clave para dinero real
   createdAt: { $gte: start, $lte: end }
 });
 
@@ -64,13 +64,15 @@ let mensualidades = { total: 0, efectivo: 0, transferencia: 0, tarjeta: 0 };
 
 pagosMensualidades.forEach((p) => {
   const monto = Number(p.total) || 0;
+  const metodo = (p.tipoPago || "").toLowerCase().trim(); // Estandariza el texto
+
   mensualidades.total += monto;
 
-  if (p.tipoPago === "Efectivo") {
+  if (metodo === "efectivo") {
     mensualidades.efectivo += monto;
-  } else if (p.tipoPago === "Nequi" || p.tipoPago === "Transferencia") {
+  } else if (metodo === "nequi" || metodo === "transferencia") {
     mensualidades.transferencia += monto;
-  } else if (p.tipoPago === "Tarjeta") {
+  } else if (metodo === "tarjeta") {
     mensualidades.tarjeta += monto;
   }
 });
@@ -139,10 +141,11 @@ const cierreDiario = async (req, res) => {
       else if(metodo === "tarjeta") ligas.tarjeta += monto;
     });
 
-    // MENSUALIDADES
+  // MENSUALIDADES
     const pagosMensualidades = await PagaMes.find({
       createdAt: { $gte: start, $lte: end },
-      nombre: { $ne: "SYSTEM" }
+      nombre: { $ne: "SYSTEM" },
+      tipoPago: { $ne: "SYSTEM" } // Agregamos esta línea para que no sume de más
     });
 
     let mensualidades = { total:0, efectivo:0, transferencia:0, tarjeta:0 };
