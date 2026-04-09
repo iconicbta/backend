@@ -78,12 +78,10 @@ const cierreDiario = async (req, res) => {
     const { fecha } = req.query;
     if (!fecha) return res.status(400).json({ message: "fecha es requerida" });
 
-    // Colombia = UTC-5
-    // El día colombiano empieza a las 05:00 UTC y termina a las 04:59:59.999 UTC del día siguiente
     const [year, month, day] = fecha.split("-").map(Number);
 
-    const start = new Date(Date.UTC(year, month - 1, day, 5, 0, 0, 0));       // 00:00 Colombia
-    const end   = new Date(Date.UTC(year, month - 1, day + 1, 4, 59, 59, 999)); // 23:59:59 Colombia
+    const start = new Date(Date.UTC(year, month - 1, day, 5, 0, 0, 0));
+    const end   = new Date(Date.UTC(year, month - 1, day + 1, 4, 59, 59, 999));
 
     const filter = { createdAt: { $gte: start, $lte: end } };
 
@@ -125,6 +123,7 @@ const cierreDiario = async (req, res) => {
 
     res.json({
       fecha,
+      rangoUTC: { start, end }, // 👈 para verificar en consola que el rango es correcto
       ligas,
       mensualidades,
       productos,
@@ -135,4 +134,52 @@ const cierreDiario = async (req, res) => {
     res.status(500).json({ message: "Error cierre diario" });
   }
 };
-module.exports = { resumenGeneral, cierreDiario };
+
+// 🔍 DIAGNÓSTICO TEMPORAL - úsalo para ver las fechas UTC reales en MongoDB
+// Llámalo así: GET /reportes/diagnostico?fecha=2026-04-08
+const diagnostico = async (req, res) => {
+  try {
+    const { fecha } = req.query;
+    if (!fecha) return res.status(400).json({ message: "fecha es requerida" });
+
+    const [year, month, day] = fecha.split("-").map(Number);
+
+    // Rango amplio: 2 días completos en UTC para ver todo
+    const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    const end   = new Date(Date.UTC(year, month - 1, day + 1, 23, 59, 59, 999));
+
+    const ligas = await PagoLigaMes.find({
+      tipoPago: { $ne: "SYSTEM" },
+      createdAt: { $gte: start, $lte: end }
+    }).select("createdAt total tipoPago");
+
+    const mens = await PagaMes.find({
+      tipoPago: { $ne: "SYSTEM" },
+      createdAt: { $gte: start, $lte: end }
+    }).select("createdAt total tipoPago");
+
+    const prods = await Pago.find({
+      estado: "Completado",
+      createdAt: { $gte: start, $lte: end }
+    }).select("createdAt monto metodoPago");
+
+    const formatear = (p, montoField) => ({
+      utc:      p.createdAt.toISOString(),
+      colombia: new Date(p.createdAt.getTime() - 5 * 60 * 60 * 1000).toISOString().replace("T", " ").slice(0, 19),
+      monto:    p[montoField]
+    });
+
+    res.json({
+      fecha_consultada: fecha,
+      rango_UTC: { start, end },
+      ligas:         ligas.map(p => formatear(p, "total")),
+      mensualidades: mens.map(p => formatear(p, "total")),
+      productos:     prods.map(p => formatear(p, "monto")),
+    });
+  } catch (e) {
+    console.error("Error diagnóstico", e);
+    res.status(500).json({ message: e.message });
+  }
+};
+
+module.exports = { resumenGeneral, cierreDiario, diagnostico };
