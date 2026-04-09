@@ -4,5 +4,6 @@ const { resumenGeneral, cierreDiario } = require("../controllers/reportesControl
 
 router.get("/resumen-general", resumenGeneral);
 router.get("/cierre-diario", cierreDiario);
+router.get("/diagnostico", diagnostico);
 
 module.exports = router;
