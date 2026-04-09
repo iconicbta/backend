@@ -78,12 +78,10 @@ const cierreDiario = async (req, res) => {
     const { fecha } = req.query;
     if (!fecha) return res.status(400).json({ message: "fecha es requerida" });
 
-    // Colombia = UTC-5
-    // El día colombiano empieza a las 05:00 UTC y termina a las 04:59:59.999 UTC del día siguiente
-    const [year, month, day] = fecha.split("-").map(Number);
-
-    const start = new Date(Date.UTC(year, month - 1, day, 5, 0, 0, 0));       // 00:00 Colombia
-    const end   = new Date(Date.UTC(year, month - 1, day + 1, 4, 59, 59, 999)); // 23:59:59 Colombia
+    const start = new Date(fecha);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(fecha);
+    end.setHours(23, 59, 59, 999);
 
     const filter = { createdAt: { $gte: start, $lte: end } };
 
@@ -135,4 +133,5 @@ const cierreDiario = async (req, res) => {
     res.status(500).json({ message: "Error cierre diario" });
   }
 };
+
 module.exports = { resumenGeneral, cierreDiario };
